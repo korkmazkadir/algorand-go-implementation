@@ -52,11 +52,13 @@ func (b *blockchainImp) AppendBlock(block Block) error {
 	}
 
 	blockHash := block.Hash()
-	b.log.Printf("New block appended: %s\n", base64.StdEncoding.EncodeToString(blockHash))
 
 	b.blocks = append(b.blocks, block)
+	b.lastBlock = &block
 	b.blockHeight = len(b.blocks)
 	b.lastBlockHash = blockHash
+
+	b.log.Printf("New block appended: %s\n", base64.StdEncoding.EncodeToString(blockHash))
 
 	return nil
 }

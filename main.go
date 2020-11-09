@@ -43,14 +43,17 @@ func main() {
 	memoryPoolLogger := log.New(os.Stderr, "[memor-pool] ", flags)
 	blockchainLogger := log.New(os.Stderr, "[blockchain] ", flags)
 
-	params := agreement.ProtocolParams{
-		UserMoney:  4,
-		TotalMoney: 100,
+	//ioutil.Discard to discart logs
+	nodeLogger := log.New(ioutil.Discard, "[node] ", flags)
 
-		TSmallStep: 15,
+	params := agreement.ProtocolParams{
+		UserMoney:  1000,
+		TotalMoney: 10000,
+
+		TSmallStep: 6000,
 		TBigStep:   0.68,
 
-		TBigFinal:   25,
+		TBigFinal:   7000,
 		TSmallFinal: 0.75,
 
 		ThresholdProposer: 5,
@@ -71,7 +74,7 @@ func main() {
 
 	app := agreement.NewBAStar(params, pk, sk, memoryPool, blockchain, agreementLogger)
 
-	gossipNode := node.NewGossipNode(app)
+	gossipNode := node.NewGossipNode(app, nodeLogger)
 	address, err := gossipNode.Start()
 	if err != nil {
 		panic(err)
@@ -80,11 +83,8 @@ func main() {
 	//select 4 peers only
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(peerAddresses), func(i, j int) { peerAddresses[i], peerAddresses[j] = peerAddresses[j], peerAddresses[i] })
-	for index, address := range peerAddresses {
+	for _, address := range peerAddresses {
 		connectToPeer(address, gossipNode)
-		if index == 4 {
-			break
-		}
 	}
 
 	app.Start()

@@ -43,9 +43,9 @@ func NewBAStar(params ProtocolParams, publicKey []byte, privateKey []byte, memor
 	ba.messageFilter = filter.NewUniqueMessageFilter(60)
 
 	// TODO: buffer sizes must be considered carefully
-	ba.incommingBlockChan = make(chan incommingBlock, 10)
-	ba.incommingVoteChan = make(chan incommingVote, 10)
-	ba.outgoingMessages = make(chan node.Message, 10)
+	ba.incommingBlockChan = make(chan incommingBlock, 100)
+	ba.incommingVoteChan = make(chan incommingVote, 100)
+	ba.outgoingMessages = make(chan node.Message, 100)
 
 	ba.params = params
 	ba.publickKey = publicKey
@@ -68,6 +68,8 @@ func (ba *BAStar) Start() {
 		//waits for network signal
 		<-ba.networkReadySig
 
+		time.Sleep(10 * time.Second)
+
 		ba.log.Println("Started...")
 
 		ba.wg.Add(1)
@@ -79,6 +81,8 @@ func (ba *BAStar) Start() {
 func (ba *BAStar) mainLoop() {
 
 	for {
+
+		ba.log.Printf("---------> Last Block Hash %s \n", ba.blockchain.GetLastBlockHash())
 
 		round := ba.blockchain.GetBlockHeight()
 
@@ -99,6 +103,16 @@ func (ba *BAStar) mainLoop() {
 		r, _ := ba.countVotes(round, StepFinal, ba.params.TSmallFinal, ba.params.TBigFinal, ba.params.LamdaStep)
 		if bytes.Equal(r, blockHash) {
 			ba.log.Printf("FINAL CONSENSUS on %s\n", ByteToBase64String(blockHash))
+
+			if bytes.Equal(blockHash, highestPriorityBlock.Hash()) {
+				err := ba.blockchain.AppendBlock(*highestPriorityBlock)
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				ba.log.Printf("BLOCK NOT HERE!!!! %s\n", ByteToBase64String(blockHash))
+			}
+
 		} else {
 			ba.log.Printf("TENTATIVE CONSENSUS on %s\n", ByteToBase64String(blockHash))
 		}
@@ -106,6 +120,8 @@ func (ba *BAStar) mainLoop() {
 }
 
 func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Block {
+
+	ba.log.Printf("Waiting for proposals...")
 
 	sleepTime := time.Duration(ba.params.LamdaPriority + ba.params.LamdaStepVar)
 	timeout := time.After(sleepTime * time.Second)
@@ -121,10 +137,13 @@ func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Blo
 			forwardBlock := incommingBlock.forward
 
 			//TODO validate the block
-			ba.log.Printf("Block received: %s\n", ByteToBase64String(block.Hash()))
+			//ba.log.Printf("Block received: %s\n", ByteToBase64String(block.Hash()))
 			if highestPriorityBlock == nil || compareBlocks(&block, highestPriorityBlock) == 1 {
+				ba.log.Printf("Block forwarded: %s\n", ByteToBase64String(block.Hash()))
 				highestPriorityBlock = &block
 				forwardBlock()
+			} else {
+				ba.log.Printf("Not forwarded: %s\n", ByteToBase64String(block.Hash()))
 			}
 
 		case <-timeout:
@@ -191,7 +210,8 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, block
 		VoteCount:     numberOfTimesSelected,
 		Round:         round,
 		Step:          step,
-		LastBlockHash: lastBlock.Hash(),
+		LastBlockHash: ba.blockchain.GetLastBlockHash(),
+		//LastBlockHash: lastBlock.Hash(),
 		SelectedBlock: blockHash,
 	}
 
@@ -224,6 +244,8 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			voters[string(vote.SenderPK)] = vote.SenderPK
 			counts[string(selectedBlockHash)] = counts[string(selectedBlockHash)] + numVotes
 
+			ba.log.Printf("Vote for %s --> count:%d\n", ByteToBase64String(selectedBlockHash), numVotes)
+
 			forwardCallback()
 
 			//TODO: Check this line, ceil float64 does not seems good
@@ -252,7 +274,7 @@ func (ba *BAStar) validateVote(vote Vote) (numVotes int, value []byte, sortition
 
 	lastBlockHash := ba.blockchain.GetLastBlockHash()
 	if bytes.Equal(lastBlockHash, vote.LastBlockHash) == false {
-		ba.log.Println("Votes previous block hash is not correct")
+		ba.log.Printf("Votes previous block is not correct %s not equals %s \n", ByteToBase64String(lastBlockHash), ByteToBase64String(vote.LastBlockHash))
 		return
 	}
 

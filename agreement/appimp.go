@@ -49,6 +49,7 @@ func (a *applicationImp) HandleMessage(message node.Message) {
 		node.DecodeFromByte(message.Payload, &block)
 		inBlock := incommingBlock{block: block, forward: message.Forward}
 		a.incommingBlockChan <- inBlock
+		//log.Println("Block ready to process.")
 
 	case tagVote:
 
@@ -56,6 +57,7 @@ func (a *applicationImp) HandleMessage(message node.Message) {
 		node.DecodeFromByte(message.Payload, &vote)
 		inVote := incommingVote{vote: vote, forward: message.Forward}
 		a.incommingVoteChan <- inVote
+		//log.Println("Vote ready to process.")
 
 	default:
 		panic(fmt.Errorf("Unknow message tag for BAStar protocol: %s", message.Tag))
