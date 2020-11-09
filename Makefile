@@ -2,6 +2,6 @@ build:
 	go build .
 
 clean:
-	rm ./algorand
+	rm ./algorand-go-implementation
 	rm addressbook.txt
 	rm -r output/

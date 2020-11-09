@@ -8,6 +8,6 @@ mkdir -p output
 
 for (( i=1; i<=$number_of_nodes; i++ ))
 do  
-   ./algorand < addressbook.txt >> addressbook.txt 2> output/"$i.log" &
+   ./algorand-go-implementation < addressbook.txt >> addressbook.txt 2> output/"$i.log" &
    sleep 0.1
 done
