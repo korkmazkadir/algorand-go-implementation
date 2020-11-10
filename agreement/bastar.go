@@ -27,7 +27,8 @@ type BAStar struct {
 	memoryPool blockchain.MemoryPool
 	blockchain blockchain.Blockchain
 
-	localVote *Vote
+	localVote  *Vote
+	emptyBlock *blockchain.Block
 
 	sortition *sortition
 	params    ProtocolParams
@@ -80,19 +81,28 @@ func (ba *BAStar) Start() {
 
 func (ba *BAStar) mainLoop() {
 
+	startTime := time.Now()
+
 	for {
 
-		ba.log.Printf("---------> Last Block Hash %s \n", ByteToBase64String(ba.blockchain.GetLastBlockHash()))
+		currentRound := (ba.blockchain.GetBlockHeight() - 1)
+		ba.log.Printf("=====================> Round %d Finished in %f seconds <=====================\n", currentRound, time.Since(startTime).Seconds())
+		startTime = time.Now()
+
+		//creates an empty block for the current round to use
+		ba.createEmptyBlock()
+
+		ba.log.Printf("Last Block Hash %s \n", ByteToBase64String(ba.blockchain.GetLastBlockHash()))
 
 		round := ba.blockchain.GetBlockHeight()
 
 		proposedBlock := ba.proposeBlock()
 		highestPriorityBlock := ba.waitForBlocks(proposedBlock)
 
+		// TODO: make sure that highestPriorityBlock is not nil
+
 		var blockHash []byte
-		if highestPriorityBlock != nil {
-			blockHash = highestPriorityBlock.Hash()
-		}
+		blockHash = highestPriorityBlock.Hash()
 
 		blockHash = ba.reduction(round, blockHash)
 		ba.log.Printf("Result of reduction: %s\n", ByteToBase64String(blockHash))
@@ -125,6 +135,7 @@ func (ba *BAStar) mainLoop() {
 		} else {
 			ba.log.Printf("TENTATIVE CONSENSUS on %s\n", ByteToBase64String(blockHash))
 		}
+
 	}
 }
 
@@ -132,7 +143,7 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.B
 
 	ba.log.Printf("Waiting for appended block %s\n", ByteToBase64String(blockHash))
 
-	if bytes.Equal(blockHash, emptyHash(round, ba.blockchain.GetLastBlockHash())) {
+	if bytes.Equal(blockHash, ba.emptyBlock.Hash()) {
 		panic("Waiting for empty block!!!")
 	}
 
@@ -194,14 +205,13 @@ func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Blo
 
 		case <-timeout:
 
-			if highestPriorityBlock != nil {
-				ba.log.Printf("Highest priority block: %s \n", ByteToBase64String(highestPriorityBlock.Hash()))
-			} else {
-				ba.log.Println("Highest priority block: nil")
+			if highestPriorityBlock == nil {
+				highestPriorityBlock = ba.emptyBlock
 			}
 
-			return highestPriorityBlock
+			ba.log.Printf("Highest priority block: %s \n", ByteToBase64String(highestPriorityBlock.Hash()))
 
+			return highestPriorityBlock
 		}
 
 	}
@@ -217,7 +227,7 @@ func (ba *BAStar) reduction(round int, blockHash []byte) []byte {
 	timerValueOne := ba.params.LamdaBlock + ba.params.LamdaStep
 
 	blockHash1, isTimerExpired := ba.countVotes(round, StepReductionOne, voteThreshold, stepThreshold, timerValueOne)
-	emptyHash := emptyHash(round, ba.blockchain.GetLastBlockHash())
+	emptyHash := ba.emptyBlock.Hash()
 
 	if isTimerExpired {
 		ba.committeeVote(round, StepReductionTwo, stepThreshold, emptyHash)
@@ -258,7 +268,6 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, block
 		Round:         round,
 		Step:          step,
 		LastBlockHash: ba.blockchain.GetLastBlockHash(),
-		//LastBlockHash: lastBlock.Hash(),
 		SelectedBlock: blockHash,
 	}
 
@@ -338,11 +347,9 @@ func (ba *BAStar) validateVote(vote Vote) (numVotes int, value []byte, sortition
 
 func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
 
-	lastBlock := ba.blockchain.GetLastBlock()
-
 	step := 1
 	r := blockHash
-	emptyBlockHash := emptyHash(round, lastBlock.Hash())
+	emptyBlockHash := ba.emptyBlock.Hash()
 	// TODO define a maxstep
 	for step < 255 {
 
@@ -444,4 +451,11 @@ func (ba *BAStar) signBlock(block *blockchain.Block) {
 	blockHash := block.Hash()
 	block.Signature = ed25519.Sign(ba.privateKey, blockHash)
 	return
+}
+
+func (ba *BAStar) createEmptyBlock() {
+	previousBlock := ba.blockchain.GetLastBlock()
+	round := ba.blockchain.GetBlockHeight()
+	ba.emptyBlock = ba.memoryPool.CreateEmptyBlock(previousBlock, round)
+	ba.log.Printf("Empty block created %s \n", ByteToBase64String(ba.emptyBlock.Hash()))
 }

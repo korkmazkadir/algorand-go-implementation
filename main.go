@@ -83,8 +83,11 @@ func main() {
 	//select 4 peers only
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(peerAddresses), func(i, j int) { peerAddresses[i], peerAddresses[j] = peerAddresses[j], peerAddresses[i] })
-	for _, address := range peerAddresses {
+	for index, address := range peerAddresses {
 		connectToPeer(address, gossipNode)
+		if index == 4 {
+			break
+		}
 	}
 
 	app.Start()

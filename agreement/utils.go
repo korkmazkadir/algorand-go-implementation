@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 
 	"../blockchain"
 )
@@ -28,7 +27,9 @@ func compareBlocks(a *blockchain.Block, b *blockchain.Block) int {
 	return bytes.Compare(hashA, hashB)
 }
 
+/*
 func emptyHash(round int, previousBlockHash []byte) []byte {
 	input := fmt.Sprintf("%d|%x", round, previousBlockHash)
 	return digest([]byte(input))
 }
+*/
