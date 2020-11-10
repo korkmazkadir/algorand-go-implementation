@@ -56,7 +56,7 @@ func main() {
 		TBigFinal:   6000,
 		TSmallFinal: 0.70,
 
-		ThresholdProposer: 5,
+		ThresholdProposer: 26,
 
 		LamdaPriority: 5,
 		LamdaBlock:    60,
