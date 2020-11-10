@@ -53,8 +53,8 @@ func main() {
 		TSmallStep: 6000,
 		TBigStep:   0.68,
 
-		TBigFinal:   7000,
-		TSmallFinal: 0.75,
+		TBigFinal:   6000,
+		TSmallFinal: 0.70,
 
 		ThresholdProposer: 5,
 

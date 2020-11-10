@@ -1,8 +1,6 @@
 package agreement
 
 import (
-	"fmt"
-
 	"../blockchain"
 	"../filter"
 	"github.com/korkmazkadir/go-rpc-node/node"
@@ -12,10 +10,9 @@ import (
 type applicationImp struct {
 	networkReadySig chan struct{}
 
-	messageFilter      *filter.UniqueMessageFilter
-	incommingBlockChan chan incommingBlock
-	incommingVoteChan  chan incommingVote
-	outgoingMessages   chan node.Message
+	messageFilter    *filter.UniqueMessageFilter
+	demultiplexer    *demux
+	outgoingMessages chan node.Message
 }
 
 // it is used to keep the  forward callback
@@ -41,27 +38,7 @@ func (a *applicationImp) HandleMessage(message node.Message) {
 		return
 	}
 
-	// According to tag decodes block and puts into corresponding channel
-	switch message.Tag {
-	case tagBlock:
-
-		block := blockchain.Block{}
-		node.DecodeFromByte(message.Payload, &block)
-		inBlock := incommingBlock{block: block, forward: message.Forward}
-		a.incommingBlockChan <- inBlock
-		//log.Println("Block ready to process.")
-
-	case tagVote:
-
-		vote := Vote{}
-		node.DecodeFromByte(message.Payload, &vote)
-		inVote := incommingVote{vote: vote, forward: message.Forward}
-		a.incommingVoteChan <- inVote
-		//log.Println("Vote ready to process.")
-
-	default:
-		panic(fmt.Errorf("Unknow message tag for BAStar protocol: %s", message.Tag))
-	}
+	a.demultiplexer.EnqueueMessage(message)
 
 }
 
@@ -77,10 +54,14 @@ func (a *applicationImp) BroadcastBlock(block blockchain.Block) {
 	payload := node.EncodeToByte(block)
 	message := node.NewMessage(tagBlock, payload)
 	a.outgoingMessages <- message
+
+	a.messageFilter.IfNotContainsAdd(message.Hash())
 }
 
 func (a *applicationImp) BroadcastVote(vote Vote) {
 	payload := node.EncodeToByte(vote)
 	message := node.NewMessage(tagVote, payload)
 	a.outgoingMessages <- message
+
+	a.messageFilter.IfNotContainsAdd(message.Hash())
 }

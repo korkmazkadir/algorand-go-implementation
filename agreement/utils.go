@@ -21,8 +21,10 @@ func ByteToBase64String(data []byte) string {
 }
 
 func compareBlocks(a *blockchain.Block, b *blockchain.Block) int {
+
 	hashA := a.Hash()
-	hashB := a.Hash()
+	hashB := b.Hash()
+
 	return bytes.Compare(hashA, hashB)
 }
 
