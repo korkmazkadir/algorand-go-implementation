@@ -30,6 +30,8 @@ type BAStar struct {
 	localVote  *Vote
 	emptyBlock *blockchain.Block
 
+	waitingBlockMap map[string]*blockchain.Block
+
 	sortition *sortition
 	params    ProtocolParams
 	context
@@ -129,12 +131,27 @@ func (ba *BAStar) mainLoop() {
 				}
 			}
 
-			//sets round on demux
-			ba.demultiplexer.SetRound(ba.blockchain.GetBlockHeight())
-
 		} else {
 			ba.log.Printf("TENTATIVE CONSENSUS on %s\n", ByteToBase64String(blockHash))
+
+			if bytes.Equal(blockHash, ba.emptyBlock.Hash()) {
+				panic("Will wait for emptry block. Fix this!")
+			}
+
+			missingBlock, ok := ba.waitingBlockMap[string(blockHash)]
+			if ok == false {
+				missingBlock = ba.waitForMissingBlock(round, blockHash)
+			}
+
+			err := ba.blockchain.AppendBlock(*missingBlock)
+			if err != nil {
+				panic(err)
+			}
+
 		}
+
+		//sets round on demux
+		ba.demultiplexer.SetRound(ba.blockchain.GetBlockHeight())
 
 	}
 }
@@ -178,6 +195,8 @@ func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Blo
 
 	blockChan := ba.demultiplexer.GetBlockChan(ba.blockchain.GetBlockHeight())
 
+	ba.waitingBlockMap = make(map[string]*blockchain.Block)
+
 	var highestPriorityBlock = proposedBlock
 
 	for {
@@ -189,12 +208,10 @@ func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Blo
 			forwardBlock := incommingBlock.forward
 
 			//TODO write a valdate method for blocks
-			if bytes.Equal(block.PrevHash, ba.blockchain.GetLastBlockHash()) == false {
-				ba.log.Printf("Discarding a block from previous round forwarded: %s\n", ByteToBase64String(block.Hash()))
-				continue
-			}
 
-			//TODO validate the block
+			// puts received block to waiting block list
+			ba.waitingBlockMap[string(block.Hash())] = &block
+
 			if highestPriorityBlock == nil || (compareBlocks(highestPriorityBlock, &block) < 0) {
 				ba.log.Printf("Block forwarded: %s\n", ByteToBase64String(block.Hash()))
 				highestPriorityBlock = &block
@@ -331,9 +348,8 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 
 func (ba *BAStar) printVoteCount(voteCountMap map[string]uint64) {
 
-	ba.log.Println("---- Vote counts ----")
 	for blockHash, count := range voteCountMap {
-		ba.log.Printf("Block: %s --> Votes: %d \n", ByteToBase64String([]byte(blockHash)), count)
+		ba.log.Printf("[vote-count] Block: %s --> Votes: %d \n", ByteToBase64String([]byte(blockHash)), count)
 	}
 
 }

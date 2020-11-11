@@ -16,7 +16,7 @@ import (
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
-const totalStake = 1e16
+const totalStake = 1000
 const numberOfNodes = 100
 
 func main() {
@@ -54,10 +54,14 @@ func main() {
 		UserMoney:  totalStake / numberOfNodes,
 		TotalMoney: totalStake,
 
-		TSmallStep: 2000,
-		TBigStep:   0.68,
+		// expected number of user * per user stake
+		TSmallStep: 20 * (totalStake / numberOfNodes),
+		//TSmallStep: 2000,
+		TBigStep: 0.68,
 
-		TBigFinal:   2000,
+		// expected number of user * per user stake
+		TBigFinal: 30 * (totalStake / numberOfNodes),
+		//TBigFinal:   3000,
 		TSmallFinal: 0.74,
 
 		ThresholdProposer: 26,
