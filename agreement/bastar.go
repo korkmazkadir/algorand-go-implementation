@@ -69,7 +69,7 @@ func (ba *BAStar) Start() {
 		//waits for network signal
 		<-ba.networkReadySig
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 
 		ba.log.Println("Started...")
 
@@ -279,7 +279,7 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, block
 
 func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, stepThreshold int, timeout int) (blockHash []byte, isTimerExprired bool) {
 
-	counts := make(map[string]int)
+	counts := make(map[string]uint64)
 	voters := make(map[string][]byte)
 
 	sleepTime := time.Duration(timeout)
@@ -308,26 +308,37 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			voters[string(vote.SenderPK)] = vote.SenderPK
 			counts[string(selectedBlockHash)] = counts[string(selectedBlockHash)] + numVotes
 
-			ba.log.Printf("Vote for %s --> count:%d\n", ByteToBase64String(selectedBlockHash), numVotes)
+			//ba.log.Printf("Vote for %s --> count:%d\n", ByteToBase64String(selectedBlockHash), numVotes)
 
 			forwardCallback()
+			//ba.log.Println("Vote forwarded!")
 
 			//TODO: Check this line, ceil float64 does not seems good
-			if counts[string(selectedBlockHash)] > int(math.Ceil(float64(voteThreshold)*float64(stepThreshold))) {
+			if float64(counts[string(selectedBlockHash)]) > math.Ceil(float64(voteThreshold)*float64(stepThreshold)) {
 				ba.log.Printf("A block has reached the target vote count: %s\n", ByteToBase64String(selectedBlockHash))
+				ba.printVoteCount(counts)
 				return selectedBlockHash, false
 			}
 
 		case <-timer:
 			ba.log.Println("Timer expired for count votes.")
-
+			ba.printVoteCount(counts)
 			return nil, true
 		}
 	}
 
 }
 
-func (ba *BAStar) validateVote(vote Vote) (numVotes int, value []byte, sortitionHash []byte) {
+func (ba *BAStar) printVoteCount(voteCountMap map[string]uint64) {
+
+	ba.log.Println("---- Vote counts ----")
+	for blockHash, count := range voteCountMap {
+		ba.log.Printf("Block: %s --> Votes: %d \n", ByteToBase64String([]byte(blockHash)), count)
+	}
+
+}
+
+func (ba *BAStar) validateVote(vote Vote) (numVotes uint64, value []byte, sortitionHash []byte) {
 
 	//TODO: Validate Signature
 	//TODO: validate Sortition
@@ -353,6 +364,8 @@ func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
 	// TODO define a maxstep
 	for step < 255 {
 
+		ba.log.Printf("=======> Binary BA STEP %d \n", step)
+
 		ba.committeeVote(round, strconv.Itoa(step), ba.params.TSmallStep, r)
 		r, timerExpired := ba.countVotes(round, strconv.Itoa(step), ba.params.TBigStep, ba.params.TSmallStep, ba.params.LamdaStep)
 
@@ -360,10 +373,11 @@ func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
 			r = blockHash
 		} else if bytes.Equal(emptyBlockHash, r) == false {
 
+			// TODO: I have removed this. Consider to open later
 			//votes for the same block for next 3 rounds
-			for i := 1; i < 4; i++ {
-				ba.committeeVote(round, strconv.Itoa(step+1), ba.params.TSmallStep, r)
-			}
+			//for i := 1; i < 4; i++ {
+			//	ba.committeeVote(round, strconv.Itoa(step+1), ba.params.TSmallStep, r)
+			//}
 
 			if step == 1 {
 				ba.committeeVote(round, StepFinal, ba.params.TBigFinal, r)
@@ -373,23 +387,26 @@ func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
 		}
 
 		/***************************************/
-
 		step++
+		ba.log.Printf("=======> Binary BA STEP %d \n", step)
 		ba.committeeVote(round, strconv.Itoa(step), ba.params.TSmallStep, r)
 		r, timerExpired = ba.countVotes(round, strconv.Itoa(step), ba.params.TBigStep, ba.params.TSmallStep, ba.params.LamdaStep)
 		if timerExpired {
 			r = emptyBlockHash
 		} else if bytes.Equal(r, emptyBlockHash) {
 
-			for i := 1; i < 4; i++ {
-				ba.committeeVote(round, strconv.Itoa(step+1), ba.params.TSmallStep, r)
-			}
+			// TODO: I have removed this. Consider to open later
+			//for i := 1; i < 4; i++ {
+			//	ba.committeeVote(round, strconv.Itoa(step+1), ba.params.TSmallStep, r)
+			//}
+
 			return r
 		}
 
 		/***************************************/
 
 		step++
+		ba.log.Printf("=======> Binary BA STEP %d \n", step)
 		ba.committeeVote(round, strconv.Itoa(step), ba.params.TSmallStep, r)
 		r, timerExpired = ba.countVotes(round, strconv.Itoa(step), ba.params.TBigStep, ba.params.TSmallStep, ba.params.LamdaStep)
 		if timerExpired {

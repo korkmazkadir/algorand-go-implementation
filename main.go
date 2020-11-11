@@ -16,6 +16,9 @@ import (
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
+const totalStake = 1e16
+const numberOfNodes = 100
+
 func main() {
 
 	var peerAddresses []string
@@ -47,14 +50,15 @@ func main() {
 	nodeLogger := log.New(ioutil.Discard, "[node] ", flags)
 
 	params := agreement.ProtocolParams{
-		UserMoney:  1000,
-		TotalMoney: 10000,
 
-		TSmallStep: 6000,
+		UserMoney:  totalStake / numberOfNodes,
+		TotalMoney: totalStake,
+
+		TSmallStep: 2000,
 		TBigStep:   0.68,
 
-		TBigFinal:   6000,
-		TSmallFinal: 0.70,
+		TBigFinal:   2000,
+		TSmallFinal: 0.74,
 
 		ThresholdProposer: 26,
 
@@ -85,6 +89,7 @@ func main() {
 	rand.Shuffle(len(peerAddresses), func(i, j int) { peerAddresses[i], peerAddresses[j] = peerAddresses[j], peerAddresses[i] })
 	for index, address := range peerAddresses {
 		connectToPeer(address, gossipNode)
+
 		if index == 4 {
 			break
 		}

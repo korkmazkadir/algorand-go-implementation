@@ -17,7 +17,7 @@ func newSortition(privateKey []byte) *sortition {
 	return s
 }
 
-func (s *sortition) Select(seed string, threshold int, role string, userMoney int, totalMoney int) ([]byte, []byte, int) {
+func (s *sortition) Select(seed string, threshold int, role string, userMoney uint64, totalMoney uint64) ([]byte, []byte, uint64) {
 
 	input := seed + role
 	vrfHash, proof := s.ProduceProof([]byte(input))
@@ -30,7 +30,7 @@ func (s *sortition) Select(seed string, threshold int, role string, userMoney in
 	return vrfHash, proof, numberOfTimesSelected
 }
 
-func (s *sortition) Verify(publicKey []byte, hash []byte, proof []byte, seed string, threshold int, role string, userMoney int, totalMoney int) int {
+func (s *sortition) Verify(publicKey []byte, hash []byte, proof []byte, seed string, threshold int, role string, userMoney uint64, totalMoney uint64) uint64 {
 
 	input := seed + role
 	if s.vrf.Verify(publicKey, []byte(input), hash, proof) == false {
@@ -43,11 +43,13 @@ func (s *sortition) Verify(publicKey []byte, hash []byte, proof []byte, seed str
 	return countSelected(threshold, userMoney, totalMoney, ratio)
 }
 
-func countSelected(threshold int, userMoney int, totalMoney int, ratio float64) int {
+func countSelected(threshold int, userMoney uint64, totalMoney uint64, ratio float64) uint64 {
+
 	p := float64(threshold) / float64(totalMoney)
 	distribution := distuv.Binomial{N: float64(userMoney), P: p}
 
-	for i := 0; i < userMoney; i++ {
+	var i uint64
+	for i = 0; i < userMoney; i++ {
 
 		boundary := distribution.CDF(float64(i))
 		//fmt.Printf("\t[%d]\tboundary:%s\n", i, strconv.FormatFloat(boundary, 'f', -1, 64))

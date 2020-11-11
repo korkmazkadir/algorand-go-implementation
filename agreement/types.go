@@ -15,7 +15,7 @@ type Vote struct {
 	SenderPK      []byte
 	VrfHash       []byte
 	VrfProof      []byte
-	VoteCount     int
+	VoteCount     uint64
 	Round         int
 	Step          string
 	LastBlockHash []byte
@@ -23,8 +23,8 @@ type Vote struct {
 }
 
 type ProtocolParams struct {
-	UserMoney  int
-	TotalMoney int
+	UserMoney  uint64
+	TotalMoney uint64
 
 	ThresholdProposer int
 	TSmallStep        int
