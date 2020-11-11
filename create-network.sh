@@ -4,7 +4,7 @@ read -p "number of nodes: " number_of_nodes
 
 #creates the address-book.txt if it does not exists
 touch addressbook.txt
-touch pids.txt
+touch process.pids
 
 mkdir -p output
 
