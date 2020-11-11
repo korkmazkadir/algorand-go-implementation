@@ -134,10 +134,6 @@ func (ba *BAStar) mainLoop() {
 		} else {
 			ba.log.Printf("TENTATIVE CONSENSUS on %s\n", ByteToBase64String(blockHash))
 
-			if bytes.Equal(blockHash, ba.emptyBlock.Hash()) {
-				panic("Will wait for emptry block. Fix this!")
-			}
-
 			missingBlock, ok := ba.waitingBlockMap[string(blockHash)]
 			if ok == false {
 				missingBlock = ba.waitForMissingBlock(round, blockHash)
@@ -161,7 +157,9 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.B
 	ba.log.Printf("Waiting for appended block %s\n", ByteToBase64String(blockHash))
 
 	if bytes.Equal(blockHash, ba.emptyBlock.Hash()) {
-		panic("Waiting for empty block!!!")
+		//panic("Waiting for empty block!!!")
+		ba.log.Println("WARNING: returning empty block to append the chain. Be careful!!!")
+		return ba.emptyBlock
 	}
 
 	blockChan := ba.demultiplexer.GetBlockChan(round)

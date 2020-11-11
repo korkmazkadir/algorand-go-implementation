@@ -127,7 +127,12 @@ func (d *demux) enqueueBlock(ib incommingBlock) {
 	}
 
 	// enques the block
-	d.blockChanMap[ib.block.Index] <- ib
+
+	select {
+	case d.blockChanMap[ib.block.Index] <- ib:
+	default:
+		log.Println("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
+	}
 
 }
 
@@ -144,8 +149,14 @@ func (d *demux) enqueueVote(iv incommingVote) {
 	if ok == false {
 		d.voteChanMap[iv.vote.Round] = createVoteChan()
 	}
+
+	select {
+	case d.voteChanMap[iv.vote.Round] <- iv:
+	default:
+		log.Println("WARNING: Could not enqueue the vote\n")
+	}
+
 	// enques the vote
-	d.voteChanMap[iv.vote.Round] <- iv
 
 }
 
