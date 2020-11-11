@@ -9,8 +9,8 @@ import (
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
-const blockQueueSize = 26
-const voteQueueSize = 100
+const blockQueueSize = 100
+const voteQueueSize = 1000
 
 type demux struct {
 
