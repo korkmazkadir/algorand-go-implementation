@@ -38,6 +38,7 @@ func (a *applicationImp) HandleMessage(message node.Message) {
 		return
 	}
 
+	//It might blocks
 	a.demultiplexer.EnqueueMessage(message)
 
 }

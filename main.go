@@ -19,6 +19,8 @@ import (
 const totalStake = 1000
 const numberOfNodes = 100
 
+const gossipNodeBufferSize = 100
+
 func main() {
 
 	var peerAddresses []string
@@ -82,7 +84,7 @@ func main() {
 
 	app := agreement.NewBAStar(params, pk, sk, memoryPool, blockchain, agreementLogger)
 
-	gossipNode := node.NewGossipNode(app, nodeLogger)
+	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, nodeLogger)
 	address, err := gossipNode.Start()
 	if err != nil {
 		panic(err)

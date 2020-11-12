@@ -12,6 +12,8 @@ import (
 const blockQueueSize = 100
 const voteQueueSize = 1000
 
+type waitFunction func()
+
 type demux struct {
 
 	//current round
@@ -44,14 +46,22 @@ func (d *demux) EnqueueMessage(message node.Message) {
 		block := blockchain.Block{}
 		node.DecodeFromByte(message.Payload, &block)
 		inBlock := incommingBlock{block: block, forward: message.Forward}
-		d.enqueueBlock(inBlock)
+		wait, result := d.enqueueBlock(inBlock)
+		if result == false {
+			log.Printf("waiting to enqueue a block. Round: %d hash: %s\n", block.Index, ByteToBase64String(block.Hash()))
+			wait()
+		}
 
 	case tagVote:
 
 		vote := Vote{}
 		node.DecodeFromByte(message.Payload, &vote)
 		inVote := incommingVote{vote: vote, forward: message.Forward}
-		d.enqueueVote(inVote)
+		wait, result := d.enqueueVote(inVote)
+		if result == false {
+			log.Printf("Waiting to enqueue a vote. Round %d\n", vote.Round)
+			wait()
+		}
 
 	default:
 		panic(fmt.Errorf("Unknow message tag for BAStar protocol: %s", message.Tag))
@@ -111,14 +121,14 @@ func (d *demux) GetVoteChan(round int) chan incommingVote {
 	return d.voteChanMap[round]
 }
 
-func (d *demux) enqueueBlock(ib incommingBlock) {
+func (d *demux) enqueueBlock(ib incommingBlock) (waitFunction, bool) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
 	//discards the message
 	if ib.block.Index < d.currentRound {
 		log.Printf(">>> discarding block %s \n", ByteToBase64String(ib.block.Hash()))
-		return
+		return nil, true
 	}
 
 	_, ok := d.blockChanMap[ib.block.Index]
@@ -130,19 +140,26 @@ func (d *demux) enqueueBlock(ib incommingBlock) {
 
 	select {
 	case d.blockChanMap[ib.block.Index] <- ib:
+		return nil, true
 	default:
 		log.Println("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
+		waitFunc := func() {
+			d.blockChanMap[ib.block.Index] <- ib
+			log.Printf("Late block enqueue. Round: %d Hash: %s\n", ib.block.Index, ByteToBase64String(ib.block.Hash()))
+		}
+
+		return waitFunc, false
 	}
 
 }
 
-func (d *demux) enqueueVote(iv incommingVote) {
+func (d *demux) enqueueVote(iv incommingVote) (waitFunction, bool) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
 	//discards the message
 	if iv.vote.Round < d.currentRound {
-		return
+		return nil, true
 	}
 
 	_, ok := d.voteChanMap[iv.vote.Round]
@@ -152,8 +169,15 @@ func (d *demux) enqueueVote(iv incommingVote) {
 
 	select {
 	case d.voteChanMap[iv.vote.Round] <- iv:
+		return nil, true
 	default:
 		log.Println("WARNING: Could not enqueue the vote\n")
+		waitFunc := func() {
+			d.voteChanMap[iv.vote.Round] <- iv
+			log.Printf("Late vote enqueue. Round %d \n", iv.vote.Round)
+		}
+
+		return waitFunc, false
 	}
 
 	// enques the vote
