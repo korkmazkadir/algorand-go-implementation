@@ -20,7 +20,7 @@ type demux struct {
 	currentRound int
 
 	// round - vote chanel
-	voteChanMap map[int]chan incommingVote
+	voteChanMap map[int]map[string]chan incommingVote
 
 	// block - vote chanel
 	blockChanMap map[int]chan incommingBlock
@@ -32,7 +32,7 @@ type demux struct {
 func newDemux(currentRound int) *demux {
 	d := new(demux)
 	d.currentRound = currentRound
-	d.voteChanMap = make(map[int]chan incommingVote)
+	d.voteChanMap = make(map[int]map[string]chan incommingVote)
 	d.blockChanMap = make(map[int]chan incommingBlock)
 	d.mutex = sync.Mutex{}
 	return d
@@ -105,7 +105,7 @@ func (d *demux) GetBlockChan(round int) chan incommingBlock {
 	return d.blockChanMap[round]
 }
 
-func (d *demux) GetVoteChan(round int) chan incommingVote {
+func (d *demux) GetVoteChan(round int, step string) chan incommingVote {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -115,10 +115,15 @@ func (d *demux) GetVoteChan(round int) chan incommingVote {
 
 	_, ok := d.voteChanMap[round]
 	if ok == false {
-		d.voteChanMap[round] = createVoteChan()
+		d.voteChanMap[round] = createVoteStepMap()
 	}
 
-	return d.voteChanMap[round]
+	_, ok = d.voteChanMap[round][step]
+	if ok == false {
+		d.voteChanMap[round][step] = createVoteChan()
+	}
+
+	return d.voteChanMap[round][step]
 }
 
 func (d *demux) enqueueBlock(ib incommingBlock) (waitFunction, bool) {
@@ -164,16 +169,21 @@ func (d *demux) enqueueVote(iv incommingVote) (waitFunction, bool) {
 
 	_, ok := d.voteChanMap[iv.vote.Round]
 	if ok == false {
-		d.voteChanMap[iv.vote.Round] = createVoteChan()
+		d.voteChanMap[iv.vote.Round] = createVoteStepMap()
+	}
+
+	_, ok = d.voteChanMap[iv.vote.Round][iv.vote.Step]
+	if ok == false {
+		d.voteChanMap[iv.vote.Round][iv.vote.Step] = createVoteChan()
 	}
 
 	select {
-	case d.voteChanMap[iv.vote.Round] <- iv:
+	case d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv:
 		return nil, true
 	default:
 		log.Println("WARNING: Could not enqueue the vote\n")
 		waitFunc := func() {
-			d.voteChanMap[iv.vote.Round] <- iv
+			d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv
 			log.Printf("Late vote enqueue. Round %d \n", iv.vote.Round)
 		}
 
@@ -186,6 +196,10 @@ func (d *demux) enqueueVote(iv incommingVote) (waitFunction, bool) {
 
 func createBlockChan() chan incommingBlock {
 	return make(chan incommingBlock, blockQueueSize)
+}
+
+func createVoteStepMap() map[string]chan incommingVote {
+	return make(map[string]chan incommingVote)
 }
 
 func createVoteChan() chan incommingVote {

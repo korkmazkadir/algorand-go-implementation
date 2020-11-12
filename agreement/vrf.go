@@ -23,8 +23,5 @@ func (v vrf) Verify(publicKey []byte, input []byte, hash []byte, proof []byte) b
 
 	calculatedHash := digest(proof)
 
-	//fmt.Println("calculated hash: ", base64.StdEncoding.EncodeToString(calculatedHash))
-	//fmt.Println("provided hash: ", base64.StdEncoding.EncodeToString(hash))
-
 	return bytes.Equal(hash, calculatedHash)
 }

@@ -8,8 +8,7 @@ import (
 
 // applicationImp implements the necessary interface for GosipNode
 type applicationImp struct {
-	networkReadySig chan struct{}
-
+	networkReadySig  chan struct{}
 	messageFilter    *filter.UniqueMessageFilter
 	demultiplexer    *demux
 	outgoingMessages chan node.Message

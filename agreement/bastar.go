@@ -2,7 +2,6 @@ package agreement
 
 import (
 	"bytes"
-	"crypto/ed25519"
 	"fmt"
 	"log"
 	"math"
@@ -276,7 +275,7 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, block
 	}
 
 	vote := Vote{
-		SenderPK:      ba.publickKey,
+		Issuer:        ba.publickKey,
 		VrfHash:       hash,
 		VrfProof:      proof,
 		VoteCount:     numberOfTimesSelected,
@@ -285,6 +284,9 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, block
 		LastBlockHash: ba.blockchain.GetLastBlockHash(),
 		SelectedBlock: blockHash,
 	}
+
+	//signs vote
+	signVote(&vote, ba.privateKey)
 
 	ba.log.Printf("Voting for step: %s block: %s \n", step, ByteToBase64String(vote.SelectedBlock))
 	ba.BroadcastVote(vote)
@@ -299,10 +301,10 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 
 	sleepTime := time.Duration(timeout)
 	timer := time.After(sleepTime * time.Second)
-	incommingVotes := ba.demultiplexer.GetVoteChan(round)
+	incommingVotes := ba.demultiplexer.GetVoteChan(round, step)
 
 	if ba.localVote != nil {
-		voters[string(ba.localVote.SenderPK)] = ba.localVote.SenderPK
+		voters[string(ba.localVote.Issuer)] = ba.localVote.Issuer
 		counts[string(ba.localVote.SelectedBlock)] = ba.localVote.VoteCount
 		ba.log.Printf("Local Vote for %s --> count:%d\n", ByteToBase64String(ba.localVote.SelectedBlock), ba.localVote.VoteCount)
 	}
@@ -314,13 +316,17 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			vote := incommingVote.vote
 			forwardCallback := incommingVote.forward
 
-			numVotes, selectedBlockHash, _ := ba.validateVote(vote)
+			numVotes, selectedBlockHash, _ := ba.validateVote(vote, step, stepThreshold)
 
-			if voters[string(vote.SenderPK)] != nil || numVotes == 0 {
+			if numVotes == 0 {
 				continue
 			}
 
-			voters[string(vote.SenderPK)] = vote.SenderPK
+			if voters[string(vote.Issuer)] != nil || numVotes == 0 {
+				continue
+			}
+
+			voters[string(vote.Issuer)] = vote.Issuer
 			counts[string(selectedBlockHash)] = counts[string(selectedBlockHash)] + numVotes
 
 			//ba.log.Printf("Vote for %s --> count:%d\n", ByteToBase64String(selectedBlockHash), numVotes)
@@ -350,24 +356,6 @@ func (ba *BAStar) printVoteCount(voteCountMap map[string]uint64) {
 		ba.log.Printf("[vote-count] Block: %s --> Votes: %d \n", ByteToBase64String([]byte(blockHash)), count)
 	}
 
-}
-
-func (ba *BAStar) validateVote(vote Vote) (numVotes uint64, value []byte, sortitionHash []byte) {
-
-	//TODO: Validate Signature
-	//TODO: validate Sortition
-
-	numVotes = 0
-	value = nil
-	sortitionHash = nil
-
-	lastBlockHash := ba.blockchain.GetLastBlockHash()
-	if bytes.Equal(lastBlockHash, vote.LastBlockHash) == false {
-		//ba.log.Printf("Votes previous block is not correct %s not equals %s \n", ByteToBase64String(lastBlockHash), ByteToBase64String(vote.LastBlockHash))
-		return
-	}
-
-	return vote.VoteCount, vote.SelectedBlock, vote.VrfHash
 }
 
 func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
@@ -461,7 +449,7 @@ func (ba *BAStar) proposeBlock() *blockchain.Block {
 	ba.calculateSeed(block, ba.blockchain.GetLastBlock())
 
 	//signs block
-	ba.signBlock(block)
+	signBlock(block, ba.privateKey)
 
 	//broadcasts the block
 	//TODO: decide between using pointer vs value
@@ -478,15 +466,68 @@ func (ba *BAStar) calculateSeed(block *blockchain.Block, previousBlock *blockcha
 	block.SeedHash, block.SeedProof = ba.sortition.vrf.ProduceProof([]byte(vrfInput))
 }
 
-func (ba *BAStar) signBlock(block *blockchain.Block) {
-	blockHash := block.Hash()
-	block.Signature = ed25519.Sign(ba.privateKey, blockHash)
-	return
-}
-
 func (ba *BAStar) createEmptyBlock() {
 	previousBlock := ba.blockchain.GetLastBlock()
 	round := ba.blockchain.GetBlockHeight()
 	ba.emptyBlock = ba.memoryPool.CreateEmptyBlock(previousBlock, round)
 	ba.log.Printf("Empty block created %s \n", ByteToBase64String(ba.emptyBlock.Hash()))
+}
+
+func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
+
+	if isBlockSignatureValid(block) == false {
+		ba.log.Println("WARNING: Block signature is not valid")
+		return false
+	}
+
+	lastBlock := ba.blockchain.GetLastBlock()
+	lastBlockHash := ba.blockchain.GetLastBlockHash()
+	if bytes.Equal(lastBlockHash, block.PrevHash) == false {
+		ba.log.Println("WARNING: Block previous hash is not correct")
+		return false
+	}
+
+	seed := string(lastBlock.SeedHash)
+	threshold := ba.params.ThresholdProposer
+	role := RoleProposer
+	userMoney := ba.params.UserMoney
+	totalMoney := ba.params.TotalMoney
+
+	result := ba.sortition.Verify(block.Issuer, block.VrfHash, block.VrfProof, seed, threshold, role, userMoney, totalMoney)
+
+	if result == 0 {
+		ba.log.Println("WARNING: Block VRF block is not valid")
+		return false
+	}
+
+	return true
+}
+
+func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes uint64, value []byte, sortitionHash []byte) {
+
+	if isVoteSignatureValid(&vote) == false {
+		ba.log.Println("WARNING: Vote signature is not valid")
+	}
+
+	lastBlock := ba.blockchain.GetLastBlock()
+	lastBlockHash := ba.blockchain.GetLastBlockHash()
+	if bytes.Equal(lastBlockHash, vote.LastBlockHash) == false {
+		ba.log.Println("WARNING: Vote previous hash is not correct")
+		return
+	}
+
+	round := ba.blockchain.GetBlockHeight()
+	seed := string(lastBlock.SeedHash)
+	role := fmt.Sprintf("%s|%d|%s", RoleCommittee, round, step)
+	userMoney := ba.params.UserMoney
+	totalMoney := ba.params.TotalMoney
+
+	selectionCount := ba.sortition.Verify(vote.Issuer, vote.VrfHash, vote.VrfProof, seed, threshold, role, userMoney, totalMoney)
+
+	if selectionCount != vote.VoteCount {
+		ba.log.Printf("ERROR: vote count is not correct. Round: %d Step: %s \n", vote.Round, vote.Step)
+		return
+	}
+
+	return vote.VoteCount, vote.SelectedBlock, vote.VrfHash
 }

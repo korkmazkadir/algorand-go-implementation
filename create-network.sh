@@ -12,5 +12,5 @@ for (( i=1; i<=$number_of_nodes; i++ ))
 do  
    ./algorand-go-implementation < addressbook.txt >> addressbook.txt 2> output/"$i.log" &
    echo $! >> process.pids
-   sleep 0.1
+   #sleep 0.1
 done

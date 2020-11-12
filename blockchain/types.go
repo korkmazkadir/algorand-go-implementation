@@ -11,18 +11,24 @@ type Block struct {
 	Seed
 	VrfHash      []byte
 	VrfProof     []byte
-	Signature    []byte
 	TxRootHash   []byte
 	Transactions []byte
 	hash         []byte
+	//----------------//
+	Signature []byte
+}
+
+func (b Block) hashString() string {
+	//Timestamp|Issuer|Index|PrevHash|SeedHash|SeedProof|VrfHash|VrfProof|TxRootHash
+	return fmt.Sprintf("%d|%x|%d|%x|%x|%x|%x|%x|%x", b.Timestamp, b.Issuer, b.Index, b.PrevHash, b.SeedHash, b.SeedProof, b.VrfHash, b.VrfProof, b.TxRootHash)
 }
 
 // Hash calculates SHA256 digest of the block
 func (b *Block) Hash() []byte {
 
 	if b.hash == nil {
-		text := fmt.Sprintf("%d|%x|%d|%x|%x|%x|%x|%x|%x", b.Timestamp, b.Issuer, b.Index, b.PrevHash, b.SeedHash, b.SeedProof, b.VrfHash, b.VrfProof, b.TxRootHash)
-		b.hash = digest([]byte(text))
+		hashString := b.hashString()
+		b.hash = digest([]byte(hashString))
 	}
 
 	return b.hash

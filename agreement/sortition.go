@@ -1,7 +1,6 @@
 package agreement
 
 import (
-	"log"
 	"math/big"
 
 	"gonum.org/v1/gonum/stat/distuv"
@@ -34,7 +33,7 @@ func (s *sortition) Verify(publicKey []byte, hash []byte, proof []byte, seed str
 
 	input := seed + role
 	if s.vrf.Verify(publicKey, []byte(input), hash, proof) == false {
-		log.Println("could not verify vrf")
+		//log.Println("could not verify vrf")
 		return 0
 	}
 
