@@ -513,7 +513,7 @@ func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes 
 	lastBlock := ba.blockchain.GetLastBlock()
 	lastBlockHash := ba.blockchain.GetLastBlockHash()
 	if bytes.Equal(lastBlockHash, vote.LastBlockHash) == false {
-		ba.log.Println("WARNING: Vote previous hash is not correct")
+		ba.log.Printf("WARNING: Vote previous hash is not correct. Round:%d  %s != %s\n", vote.Round, ByteToBase64String(lastBlockHash), ByteToBase64String(vote.LastBlockHash))
 		return
 	}
 

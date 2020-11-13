@@ -8,15 +8,15 @@ import (
 )
 
 type memoryPoolImp struct {
-	maxBlockPayloadSize int
-	transactions        map[string]Transaction
-	log                 *log.Logger
+	blockPayloadSize int
+	transactions     map[string]Transaction
+	log              *log.Logger
 }
 
 // NewMemoryPool creates a memorypool
-func NewMemoryPool(maxBlockPayloadSize int, logger *log.Logger) MemoryPool {
+func NewMemoryPool(blockPayloadSize int, logger *log.Logger) MemoryPool {
 	mp := new(memoryPoolImp)
-	mp.maxBlockPayloadSize = maxBlockPayloadSize
+	mp.blockPayloadSize = blockPayloadSize
 	mp.transactions = make(map[string]Transaction)
 	mp.log = logger
 
@@ -41,16 +41,16 @@ func (mp *memoryPoolImp) CreateBlock(previousBlockHash []byte, blockIndex int) *
 	block.Index = blockIndex
 
 	rand.Seed(time.Now().UnixNano())
-	payload := make([]byte, mp.maxBlockPayloadSize)
+	payload := make([]byte, mp.blockPayloadSize)
 	size, err := rand.Read(payload)
-	if err != nil || size != mp.maxBlockPayloadSize {
+	if err != nil || size != mp.blockPayloadSize {
 		panic(fmt.Errorf("could not create random payload for block. %s size %d", err, size))
 	}
 
 	block.Transactions = payload
 	block.TxRootHash = digest(block.Transactions)
 
-	mp.log.Println("New block created")
+	mp.log.Printf("New block created. Payload Size: %d Bytes \n", len(block.Transactions))
 
 	return &block
 }
