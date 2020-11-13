@@ -36,24 +36,6 @@ func (v Vote) Hash() []byte {
 	return digest([]byte(hashString))
 }
 
-type ProtocolParams struct {
-	UserMoney  uint64
-	TotalMoney uint64
-
-	ThresholdProposer int
-	TSmallStep        int
-	TBigStep          float32
-	TBigFinal         int
-	TSmallFinal       float32
-
-	BlockSizeInBytes int
-
-	LamdaPriority int
-	LamdaBlock    int
-	LamdaStep     int
-	LamdaStepVar  int
-}
-
 type context struct {
 	publickKey []byte
 	privateKey []byte

@@ -1,0 +1,28 @@
+{
+	"NodeCount": 100,
+	"BAStar": {
+		"UserMoney": 10,
+		"ThresholdProposer": 26,
+		"TSmallStep": 100,
+		"TBigStep": 0.68,
+		"TBigFinal": 200,
+		"TSmallFinal": 0.74,
+		"LamdaPriority": 5,
+		"LamdaBlock": 60,
+		"LamdaStep": 20,
+		"LamdaStepVar": 5
+	},
+	"Blockchain": {
+		"BlockPayloadSize": 1000000
+	},
+	"Network": {
+		"GossipNodeMessageBufferSize": 100,
+		"PeerCount": 4
+	},
+	"Logger": {
+		"EnableAgreementLoging": true,
+		"EnableMemoryPoolLoging": true,
+		"EnableBlockchainLoging": true,
+		"EnableGossipNodeLoging": false
+	}
+}

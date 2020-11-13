@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"../blockchain"
+	"../config"
 	"../filter"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
@@ -32,14 +33,14 @@ type BAStar struct {
 	waitingBlockMap map[string]*blockchain.Block
 
 	sortition *sortition
-	params    ProtocolParams
+	params    config.ProtocolParams
 	context
 	wg  *sync.WaitGroup
 	log *log.Logger
 }
 
 // NewBAStar creates an instance of agrreement protocol
-func NewBAStar(params ProtocolParams, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger) *BAStar {
+func NewBAStar(params config.ProtocolParams, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger) *BAStar {
 	ba := new(BAStar)
 	ba.networkReadySig = make(chan struct{}, 1)
 

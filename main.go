@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/ed25519"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,13 +14,12 @@ import (
 
 	"./agreement"
 	"./blockchain"
+	"./config"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
 const totalStake = 1000
 const numberOfNodes = 100
-
-const gossipNodeBufferSize = 100
 
 func main() {
 
@@ -38,43 +38,15 @@ func main() {
 		peerAddresses = getPeerAddressesFromFlag(peerAddressesFlag)
 	}
 
-	// maxBlockPayloadSize in bytes
-	maxBlockPayloadSize := 10
+	//reads configuration from config file
+	appConfig := readConfigurationFromFile()
 
-	flags := log.Ldate | log.Ltime | log.Lmsgprefix
+	// inits loggers
+	agreementLogger, memoryPoolLogger, blockchainLogger, nodeLogger := initLoggers(appConfig)
 
-	/* Loggers */
-	agreementLogger := log.New(os.Stderr, "[agreement] ", flags)
-	memoryPoolLogger := log.New(os.Stderr, "[memor-pool] ", flags)
-	blockchainLogger := log.New(os.Stderr, "[blockchain] ", flags)
-
-	//ioutil.Discard to discart logs
-	nodeLogger := log.New(ioutil.Discard, "[node] ", flags)
-
-	params := agreement.ProtocolParams{
-
-		UserMoney:  totalStake / numberOfNodes,
-		TotalMoney: totalStake,
-
-		// expected number of user * per user stake
-		TSmallStep: 20 * (totalStake / numberOfNodes),
-		//TSmallStep: 2000,
-		TBigStep: 0.68,
-
-		// expected number of user * per user stake
-		TBigFinal: 30 * (totalStake / numberOfNodes),
-		//TBigFinal:   3000,
-		TSmallFinal: 0.74,
-
-		ThresholdProposer: 26,
-
-		LamdaPriority: 5,
-		LamdaBlock:    60,
-		LamdaStep:     20,
-		LamdaStepVar:  5,
-	}
-
-	memoryPool := blockchain.NewMemoryPool(maxBlockPayloadSize, memoryPoolLogger)
+	//inits blockchain and memory pool
+	BlockPayloadSize := appConfig.Blockchain.BlockPayloadSize
+	memoryPool := blockchain.NewMemoryPool(BlockPayloadSize, memoryPoolLogger)
 	blockchain := blockchain.NewBlockchain(blockchainLogger)
 
 	pk, sk, err := ed25519.GenerateKey(nil)
@@ -82,8 +54,9 @@ func main() {
 		fmt.Printf("could not generate key %s", err)
 	}
 
-	app := agreement.NewBAStar(params, pk, sk, memoryPool, blockchain, agreementLogger)
+	app := agreement.NewBAStar(appConfig.BAStar, pk, sk, memoryPool, blockchain, agreementLogger)
 
+	gossipNodeBufferSize := appConfig.Network.GossipNodeMessageBufferSize
 	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, nodeLogger)
 	address, err := gossipNode.Start()
 	if err != nil {
@@ -94,11 +67,12 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(peerAddresses), func(i, j int) { peerAddresses[i], peerAddresses[j] = peerAddresses[j], peerAddresses[i] })
 	for index, address := range peerAddresses {
-		connectToPeer(address, gossipNode)
 
-		if index == 4 {
+		if index == appConfig.Network.PeerCount {
 			break
 		}
+
+		connectToPeer(address, gossipNode)
 	}
 
 	app.Start()
@@ -151,4 +125,44 @@ func connectToPeer(peerAddress string, n *node.GossipNode) {
 		panic(err)
 	}
 
+}
+
+func readConfigurationFromFile() *config.Configuration {
+	fileName := "config.json"
+	appConfig := config.ReadConfigurationFromFile(fileName)
+	appConfig.BAStar.TotalMoney = uint64(appConfig.NodeCount) * (appConfig.BAStar.UserMoney)
+
+	configData, _ := json.MarshalIndent(appConfig, "", "\t")
+	log.Printf("Starting node with configuration \n %s \n", string(configData))
+	return appConfig
+}
+
+func initLoggers(appConfig *config.Configuration) (agreementLogger *log.Logger, memoryPoolLogger *log.Logger, blockchainLogger *log.Logger, nodeLogger *log.Logger) {
+	flags := log.Ldate | log.Ltime | log.Lmsgprefix
+
+	if appConfig.Logger.EnableAgreementLoging {
+		agreementLogger = log.New(os.Stderr, "[agreement] ", flags)
+	} else {
+		agreementLogger = log.New(ioutil.Discard, "", 0)
+	}
+
+	if appConfig.Logger.EnableMemoryPoolLoging {
+		memoryPoolLogger = log.New(os.Stderr, "[memor-pool] ", flags)
+	} else {
+		memoryPoolLogger = log.New(ioutil.Discard, "", 0)
+	}
+
+	if appConfig.Logger.EnableBlockchainLoging {
+		blockchainLogger = log.New(os.Stderr, "[blockchain] ", flags)
+	} else {
+		blockchainLogger = log.New(ioutil.Discard, "", 0)
+	}
+
+	if appConfig.Logger.EnableGossipNodeLoging {
+		nodeLogger = log.New(os.Stderr, "[node] ", flags)
+	} else {
+		nodeLogger = log.New(ioutil.Discard, "", 0)
+	}
+
+	return
 }
