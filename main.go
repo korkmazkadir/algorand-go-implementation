@@ -78,6 +78,8 @@ func main() {
 	app.Start()
 	fmt.Println(address)
 
+	log.Println(address)
+
 	gossipNode.Wait()
 
 }
