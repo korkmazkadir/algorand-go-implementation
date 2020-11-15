@@ -18,6 +18,7 @@ import (
 // TODO: tag field of message can be a byte
 const tagBlock = "B"
 const tagVote = "V"
+const tagProposal = "P"
 
 // BAStar implements algorand agreement protocol
 type BAStar struct {
@@ -99,12 +100,24 @@ func (ba *BAStar) mainLoop() {
 		round := ba.blockchain.GetBlockHeight()
 
 		proposedBlock := ba.proposeBlock()
-		highestPriorityBlock := ba.waitForBlocks(proposedBlock)
 
-		// TODO: make sure that highestPriorityBlock is not nil
+		localProposal := ba.submitProposal(proposedBlock)
+		highestPriorityProposal := ba.waitForProposals(localProposal)
+
+		// If highestPriorityProposal is the proposal for the current block
+		if proposedBlock != nil && highestPriorityProposal != nil && bytes.Equal(proposedBlock.Hash(), highestPriorityProposal.BlockHash) {
+			start := time.Now()
+			ba.BroadcastBlock(*proposedBlock)
+			ba.log.Println("Block %s broadcasted. Elapsed time %d", ByteToBase64String(highestPriorityProposal.BlockHash), time.Since(start))
+		}
 
 		var blockHash []byte
-		blockHash = highestPriorityBlock.Hash()
+
+		if highestPriorityProposal == nil {
+			blockHash = ba.emptyBlock.Hash()
+		} else {
+			blockHash = highestPriorityProposal.BlockHash
+		}
 
 		blockHash = ba.reduction(round, blockHash)
 		ba.log.Printf("Result of reduction: %s\n", ByteToBase64String(blockHash))
@@ -113,17 +126,23 @@ func (ba *BAStar) mainLoop() {
 		ba.log.Printf("Result of binary BA: %s\n", ByteToBase64String(blockHash))
 
 		r, _ := ba.countVotes(round, StepFinal, ba.params.TSmallFinal, ba.params.TBigFinal, ba.params.LamdaStep)
+
 		if bytes.Equal(r, blockHash) {
 
 			ba.log.Printf("FINAL CONSENSUS on %s\n", ByteToBase64String(blockHash))
 
-			if bytes.Equal(blockHash, highestPriorityBlock.Hash()) {
-				err := ba.blockchain.AppendBlock(*highestPriorityBlock)
+			if proposedBlock != nil && highestPriorityProposal != nil && bytes.Equal(proposedBlock.Hash(), highestPriorityProposal.BlockHash) {
+				err := ba.blockchain.AppendBlock(*proposedBlock)
+				if err != nil {
+					panic(err)
+				}
+			} else if bytes.Equal(ba.emptyBlock.Hash(), blockHash) {
+				ba.log.Println("Appending empty block to the blockchain!!")
+				err := ba.blockchain.AppendBlock(*ba.emptyBlock)
 				if err != nil {
 					panic(err)
 				}
 			} else {
-				//wait for missing block
 				highestPriorityBlock := ba.waitForMissingBlock(round, blockHash)
 				err := ba.blockchain.AppendBlock(*highestPriorityBlock)
 				if err != nil {
@@ -132,10 +151,14 @@ func (ba *BAStar) mainLoop() {
 			}
 
 		} else {
+
 			ba.log.Printf("TENTATIVE CONSENSUS on %s\n", ByteToBase64String(blockHash))
 
-			missingBlock, ok := ba.waitingBlockMap[string(blockHash)]
-			if ok == false {
+			var missingBlock *blockchain.Block
+			if bytes.Equal(ba.emptyBlock.Hash(), blockHash) {
+				ba.log.Println("Appending empty block to the blockchain!!")
+				missingBlock = ba.emptyBlock
+			} else {
 				missingBlock = ba.waitForMissingBlock(round, blockHash)
 			}
 
@@ -179,6 +202,46 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.B
 
 			ba.log.Printf("Discarting block %s round: %d \n", ByteToBase64String(block.Hash()), block.Index)
 
+		}
+	}
+
+}
+
+func (ba *BAStar) waitForProposals(localProposal *Proposal) *Proposal {
+
+	ba.log.Printf("Waiting for proposals...")
+
+	sleepTime := time.Duration(ba.params.LamdaPriority + ba.params.LamdaStepVar)
+	timeout := time.After(sleepTime * time.Second)
+
+	proposalChan := ba.demultiplexer.GetProposalChan(ba.blockchain.GetBlockHeight())
+
+	var highestPriorityProposal = localProposal
+
+	for {
+		select {
+		case incommingProposal := <-proposalChan:
+
+			proposal := incommingProposal.proposal
+			forwardProposal := incommingProposal.forward
+
+			if highestPriorityProposal == nil || (compareProposals(highestPriorityProposal, &proposal) < 0) {
+				ba.log.Printf("Forwarding proposal for the block: %s\n", ByteToBase64String(proposal.BlockHash))
+				highestPriorityProposal = &proposal
+				forwardProposal()
+			} else {
+				ba.log.Printf("Proposal Not forwarded for the block %s\n", ByteToBase64String(proposal.BlockHash))
+			}
+
+		case <-timeout:
+
+			if highestPriorityProposal == nil {
+				ba.log.Println("No proposal received!!!")
+			} else {
+				ba.log.Printf("Highest priority proposal for the block %s \n", ByteToBase64String(highestPriorityProposal.BlockHash))
+			}
+
+			return highestPriorityProposal
 		}
 	}
 
@@ -454,11 +517,27 @@ func (ba *BAStar) proposeBlock() *blockchain.Block {
 
 	//broadcasts the block
 	//TODO: decide between using pointer vs value
-	ba.BroadcastBlock(*block)
+	//ba.BroadcastBlock(*block)
 
-	ba.log.Printf("Proposed block: %s\n", ByteToBase64String(block.Hash()))
+	ba.log.Printf("Proposed block: %s (Not Broadcasted!!!)\n", ByteToBase64String(block.Hash()))
 
 	return block
+}
+
+func (ba *BAStar) submitProposal(proposedBlock *blockchain.Block) *Proposal {
+
+	if proposedBlock == nil {
+		return nil
+	}
+
+	proposal := createProposal(proposedBlock)
+	signProposal(proposal, ba.privateKey)
+
+	ba.BroadcastProposal(*proposal)
+
+	ba.log.Printf("Proposal broadcasted for block: %s \n", ByteToBase64String(proposal.BlockHash))
+
+	return proposal
 }
 
 // calculateSeed calculates seed field of a block

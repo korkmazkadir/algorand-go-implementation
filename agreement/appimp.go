@@ -16,6 +16,13 @@ type applicationImp struct {
 
 // it is used to keep the  forward callback
 // may be these are not necessary
+type incommingProposal struct {
+	proposal Proposal
+	forward  func()
+}
+
+// it is used to keep the  forward callback
+// may be these are not necessary
 type incommingBlock struct {
 	block   blockchain.Block
 	forward func()
@@ -53,6 +60,14 @@ func (a *applicationImp) SignalChannel() chan struct{} {
 func (a *applicationImp) BroadcastBlock(block blockchain.Block) {
 	payload := node.EncodeToByte(block)
 	message := node.NewMessage(tagBlock, payload)
+	a.outgoingMessages <- message
+
+	a.messageFilter.IfNotContainsAdd(message.Hash())
+}
+
+func (a *applicationImp) BroadcastProposal(proposal Proposal) {
+	payload := node.EncodeToByte(proposal)
+	message := node.NewMessage(tagProposal, payload)
 	a.outgoingMessages <- message
 
 	a.messageFilter.IfNotContainsAdd(message.Hash())

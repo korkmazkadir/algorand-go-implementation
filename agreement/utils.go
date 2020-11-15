@@ -47,3 +47,31 @@ func isVoteSignatureValid(vote *Vote) bool {
 	voteHash := vote.Hash()
 	return ed25519.Verify(vote.Issuer, voteHash, vote.Signature)
 }
+
+func createProposal(block *blockchain.Block) *Proposal {
+
+	proposal := Proposal{
+		Issuer:    block.Issuer,
+		Index:     block.Index,
+		PrevHash:  block.PrevHash,
+		SeedProof: block.SeedProof,
+		VrfProof:  block.VrfProof,
+		BlockHash: block.Hash(),
+	}
+
+	return &proposal
+}
+
+func signProposal(proposal *Proposal, privateKey []byte) {
+	proposalHash := proposal.Hash()
+	proposal.Signature = ed25519.Sign(privateKey, proposalHash)
+}
+
+// TODO: use sub user Index as described in the paper!!!
+func compareProposals(a *Proposal, b *Proposal) int {
+
+	hashA := digest(a.VrfProof)
+	hashB := digest(b.VrfProof)
+
+	return bytes.Compare(hashA, hashB)
+}

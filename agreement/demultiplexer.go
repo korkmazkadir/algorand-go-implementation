@@ -19,11 +19,14 @@ type demux struct {
 	//current round
 	currentRound int
 
-	// round - vote chanel
+	// round - vote channel
 	voteChanMap map[int]map[string]chan incommingVote
 
-	// block - vote chanel
+	// block - vote channel
 	blockChanMap map[int]chan incommingBlock
+
+	// round - proposal channel
+	proposalChanMap map[int]chan incommingProposal
 
 	mutex sync.Mutex
 }
@@ -34,6 +37,7 @@ func newDemux(currentRound int) *demux {
 	d.currentRound = currentRound
 	d.voteChanMap = make(map[int]map[string]chan incommingVote)
 	d.blockChanMap = make(map[int]chan incommingBlock)
+	d.proposalChanMap = make(map[int]chan incommingProposal)
 	d.mutex = sync.Mutex{}
 	return d
 }
@@ -63,6 +67,16 @@ func (d *demux) EnqueueMessage(message node.Message) {
 			wait()
 		}
 
+	case tagProposal:
+		proposal := Proposal{}
+		node.DecodeFromByte(message.Payload, &proposal)
+		inProposal := incommingProposal{proposal: proposal, forward: message.Forward}
+		wait, result := d.enqueueProposal(inProposal)
+		if result == false {
+			log.Printf("Waiting to enqueue a proposal. Round %d\n", proposal.Index)
+			wait()
+		}
+
 	default:
 		panic(fmt.Errorf("Unknow message tag for BAStar protocol: %s", message.Tag))
 	}
@@ -87,6 +101,22 @@ func (d *demux) SetRound(round int) {
 		}
 	}
 
+}
+
+func (d *demux) GetProposalChan(round int) chan incommingProposal {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if round != d.currentRound {
+		panic(fmt.Errorf("Current round %d not equals provided round %d", d.currentRound, round))
+	}
+
+	_, ok := d.proposalChanMap[round]
+	if ok == false {
+		d.proposalChanMap[round] = createProposalChan()
+	}
+
+	return d.proposalChanMap[round]
 }
 
 func (d *demux) GetBlockChan(round int) chan incommingBlock {
@@ -177,6 +207,7 @@ func (d *demux) enqueueVote(iv incommingVote) (waitFunction, bool) {
 		d.voteChanMap[iv.vote.Round][iv.vote.Step] = createVoteChan()
 	}
 
+	// enques the vote
 	select {
 	case d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv:
 		return nil, true
@@ -190,8 +221,41 @@ func (d *demux) enqueueVote(iv incommingVote) (waitFunction, bool) {
 		return waitFunc, false
 	}
 
-	// enques the vote
+}
 
+func (d *demux) enqueueProposal(ip incommingProposal) (waitFunction, bool) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	//discards the message
+	if ip.proposal.Index < d.currentRound {
+		log.Printf(">>> discarding proposal %d \n", ip.proposal.Index)
+		return nil, true
+	}
+
+	_, ok := d.proposalChanMap[ip.proposal.Index]
+	if ok == false {
+		d.proposalChanMap[ip.proposal.Index] = createProposalChan()
+	}
+
+	// enques the proposal
+	select {
+	case d.proposalChanMap[ip.proposal.Index] <- ip:
+		return nil, true
+	default:
+		log.Println("WARNING: Could not enqueue the proposal %d \n", ip.proposal.Index)
+		waitFunc := func() {
+			d.proposalChanMap[ip.proposal.Index] <- ip
+			log.Printf("Late proposal enqueue. Round: %d Block Hash: %s\n", ip.proposal.Index, ByteToBase64String(ip.proposal.BlockHash))
+		}
+
+		return waitFunc, false
+	}
+
+}
+
+func createProposalChan() chan incommingProposal {
+	return make(chan incommingProposal, blockQueueSize)
 }
 
 func createBlockChan() chan incommingBlock {
