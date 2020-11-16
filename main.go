@@ -78,7 +78,8 @@ func main() {
 	app.Start()
 	fmt.Println(address)
 
-	log.Println(address)
+	pid := os.Getpid()
+	log.Printf("PID: %d Address: %s\n", pid, address)
 
 	gossipNode.Wait()
 
