@@ -108,7 +108,7 @@ func (ba *BAStar) mainLoop() {
 		if proposedBlock != nil && highestPriorityProposal != nil && bytes.Equal(proposedBlock.Hash(), highestPriorityProposal.BlockHash) {
 			start := time.Now()
 			ba.BroadcastBlock(*proposedBlock)
-			ba.log.Println("Block %s broadcasted. Elapsed time %d", ByteToBase64String(highestPriorityProposal.BlockHash), time.Since(start))
+			ba.log.Printf("Block broadcasted: %s Elapsed time %d \n", ByteToBase64String(highestPriorityProposal.BlockHash), time.Since(start))
 		}
 
 		var blockHash []byte
@@ -177,7 +177,9 @@ func (ba *BAStar) mainLoop() {
 
 func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.Block {
 
-	ba.log.Printf("Waiting for appended block %s\n", ByteToBase64String(blockHash))
+	start := time.Now()
+
+	ba.log.Printf("Waiting for missing block %s\n", ByteToBase64String(blockHash))
 
 	if bytes.Equal(blockHash, ba.emptyBlock.Hash()) {
 		//panic("Waiting for empty block!!!")
@@ -197,6 +199,7 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.B
 
 			if bytes.Equal(block.Hash(), blockHash) {
 				forwardBlock()
+				ba.log.Printf("Missing block received %s Time elpased: %d \n", ByteToBase64String(blockHash), time.Since(start))
 				return &block
 			}
 
