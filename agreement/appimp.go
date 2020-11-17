@@ -12,6 +12,7 @@ type applicationImp struct {
 	messageFilter    *filter.UniqueMessageFilter
 	demultiplexer    *demux
 	outgoingMessages chan node.Message
+	payloadCodec     *node.PayloadCodec
 }
 
 // it is used to keep the  forward callback
@@ -58,7 +59,8 @@ func (a *applicationImp) SignalChannel() chan struct{} {
 }
 
 func (a *applicationImp) BroadcastBlock(block blockchain.Block) {
-	payload := node.EncodeToByte(block)
+	//payload := node.EncodeToByte(block)
+	payload := a.payloadCodec.EncodeToByte(block)
 	message := node.NewMessage(tagBlock, payload)
 	a.outgoingMessages <- message
 
@@ -66,7 +68,8 @@ func (a *applicationImp) BroadcastBlock(block blockchain.Block) {
 }
 
 func (a *applicationImp) BroadcastProposal(proposal Proposal) {
-	payload := node.EncodeToByte(proposal)
+	//payload := node.EncodeToByte(proposal)
+	payload := a.payloadCodec.EncodeToByte(proposal)
 	message := node.NewMessage(tagProposal, payload)
 	a.outgoingMessages <- message
 
@@ -74,7 +77,8 @@ func (a *applicationImp) BroadcastProposal(proposal Proposal) {
 }
 
 func (a *applicationImp) BroadcastVote(vote Vote) {
-	payload := node.EncodeToByte(vote)
+	//payload := node.EncodeToByte(vote)
+	payload := a.payloadCodec.EncodeToByte(vote)
 	message := node.NewMessage(tagVote, payload)
 	a.outgoingMessages <- message
 

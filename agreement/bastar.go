@@ -46,7 +46,10 @@ func NewBAStar(params config.ProtocolParams, publicKey []byte, privateKey []byte
 	// TTL 60 seconds
 	ba.messageFilter = filter.NewUniqueMessageFilter(60)
 
-	ba.demultiplexer = newDemux(1)
+	//Creates a paylaod codec
+	ba.payloadCodec = new(node.PayloadCodec)
+	ba.demultiplexer = newDemux(1, ba.payloadCodec)
+
 	ba.outgoingMessages = make(chan node.Message, 100)
 
 	ba.params = params
