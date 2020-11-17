@@ -47,7 +47,7 @@ func NewBAStar(params config.ProtocolParams, publicKey []byte, privateKey []byte
 	ba.messageFilter = filter.NewUniqueMessageFilter(60)
 
 	//Creates a paylaod codec
-	ba.payloadCodec = new(node.PayloadCodec)
+	ba.payloadCodec = node.NewPayloadCodec()
 	ba.demultiplexer = newDemux(1, ba.payloadCodec)
 
 	ba.outgoingMessages = make(chan node.Message, 100)
