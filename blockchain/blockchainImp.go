@@ -62,7 +62,7 @@ func (b *blockchainImp) AppendBlock(block Block) error {
 	block.Transactions = nil
 
 	//Removes the previously appended block to use less memory!!!
-	if len(b.blocks) == 5 {
+	if len(b.blocks) == 2 {
 		b.blocks = b.blocks[1:]
 	}
 

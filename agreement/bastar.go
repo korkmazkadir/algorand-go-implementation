@@ -31,8 +31,6 @@ type BAStar struct {
 	localVote  *Vote
 	emptyBlock *blockchain.Block
 
-	waitingBlockMap map[string]*blockchain.Block
-
 	sortition *sortition
 	params    config.ProtocolParams
 	context
@@ -259,8 +257,6 @@ func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Blo
 
 	blockChan := ba.demultiplexer.GetBlockChan(ba.blockchain.GetBlockHeight())
 
-	ba.waitingBlockMap = make(map[string]*blockchain.Block)
-
 	var highestPriorityBlock = proposedBlock
 
 	for {
@@ -272,9 +268,6 @@ func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Blo
 			forwardBlock := incommingBlock.forward
 
 			//TODO write a valdate method for blocks
-
-			// puts received block to waiting block list
-			ba.waitingBlockMap[string(block.Hash())] = &block
 
 			if highestPriorityBlock == nil || (compareBlocks(highestPriorityBlock, &block) < 0) {
 				ba.log.Printf("Block forwarded: %s\n", ByteToBase64String(block.Hash()))
