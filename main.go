@@ -16,6 +16,9 @@ import (
 	"./blockchain"
 	"./config"
 	"github.com/korkmazkadir/go-rpc-node/node"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 const totalStake = 1000
@@ -80,6 +83,11 @@ func main() {
 
 	pid := os.Getpid()
 	log.Printf("PID: %d Address: %s\n", pid, address)
+
+	go func() {
+		log.Println("starting pprof")
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	gossipNode.Wait()
 
