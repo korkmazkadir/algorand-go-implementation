@@ -28,19 +28,16 @@ type demux struct {
 	// round - proposal channel
 	proposalChanMap map[int]chan incommingProposal
 
-	payloadCodec *node.PayloadCodec
-
 	mutex sync.Mutex
 }
 
 // NewDemux creates and returns a demux instance
-func newDemux(currentRound int, payloadCodec *node.PayloadCodec) *demux {
+func newDemux(currentRound int) *demux {
 	d := new(demux)
 	d.currentRound = currentRound
 	d.voteChanMap = make(map[int]map[string]chan incommingVote)
 	d.blockChanMap = make(map[int]chan incommingBlock)
 	d.proposalChanMap = make(map[int]chan incommingProposal)
-	d.payloadCodec = payloadCodec
 	d.mutex = sync.Mutex{}
 	return d
 }
@@ -51,8 +48,7 @@ func (d *demux) EnqueueMessage(message node.Message) {
 	case tagBlock:
 
 		block := blockchain.Block{}
-		//node.DecodeFromByte(message.Payload, &block)
-		d.payloadCodec.DecodeFromByte(message.Payload, &block)
+		node.DecodeFromByte(message.Payload, &block)
 		inBlock := incommingBlock{block: block, forward: message.Forward}
 		wait, result := d.enqueueBlock(inBlock)
 		if result == false {
@@ -63,8 +59,7 @@ func (d *demux) EnqueueMessage(message node.Message) {
 	case tagVote:
 
 		vote := Vote{}
-		//node.DecodeFromByte(message.Payload, &vote)
-		d.payloadCodec.DecodeFromByte(message.Payload, &vote)
+		node.DecodeFromByte(message.Payload, &vote)
 		inVote := incommingVote{vote: vote, forward: message.Forward}
 		wait, result := d.enqueueVote(inVote)
 		if result == false {
@@ -74,8 +69,7 @@ func (d *demux) EnqueueMessage(message node.Message) {
 
 	case tagProposal:
 		proposal := Proposal{}
-		//node.DecodeFromByte(message.Payload, &proposal)
-		d.payloadCodec.DecodeFromByte(message.Payload, &proposal)
+		node.DecodeFromByte(message.Payload, &proposal)
 		inProposal := incommingProposal{proposal: proposal, forward: message.Forward}
 		wait, result := d.enqueueProposal(inProposal)
 		if result == false {
