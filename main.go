@@ -15,6 +15,7 @@ import (
 	"./agreement"
 	"./blockchain"
 	"./config"
+	"github.com/korkmazkadir/coordinator/registery"
 	"github.com/korkmazkadir/go-rpc-node/node"
 
 	"net/http"
@@ -28,16 +29,16 @@ func main() {
 
 	var peerAddresses []string
 
+	peerAddressesFlag := flag.String("peers", "", "semicolon seperated list peer addresses")
+	registeryAddressFlag := flag.String("registery", "", "address of the registery service (127.0.0.6:9091)")
+	flag.Parse()
+
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
 		log.Println("data is being piped to stdin")
-
 		peerAddresses = getPeerAddressesFromFile(os.Stdin)
 	} else {
 		log.Println("stdin is from a terminal")
-
-		peerAddressesFlag := flag.String("peers", "", "semicolon seperated list peer addresses")
-		flag.Parse()
 		peerAddresses = getPeerAddressesFromFlag(peerAddressesFlag)
 	}
 
@@ -66,19 +67,26 @@ func main() {
 		panic(err)
 	}
 
-	//select 4 peers only
+	if *registeryAddressFlag != "" {
+		peerAddresses = connectRegisteryWaitForPeers(*registeryAddressFlag, address, appConfig.NodeCount, app)
+	}
+
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(peerAddresses), func(i, j int) { peerAddresses[i], peerAddresses[j] = peerAddresses[j], peerAddresses[i] })
-	for index, address := range peerAddresses {
-
-		if index == appConfig.Network.PeerCount {
+	peerCount := 0
+	for _, peerAddress := range peerAddresses {
+		if peerCount == appConfig.Network.PeerCount {
 			break
 		}
-
-		connectToPeer(address, gossipNode)
+		if address == peerAddress {
+			continue
+		}
+		connectToPeer(peerAddress, gossipNode)
+		peerCount++
 	}
 
 	app.Start()
+
 	fmt.Println(address)
 
 	pid := os.Getpid()
@@ -91,6 +99,31 @@ func main() {
 
 	gossipNode.Wait()
 
+}
+
+func connectRegisteryWaitForPeers(registryAddress string, currentNodeAddress string, nodeCount int, app *agreement.BAStar) []string {
+
+	log.Printf("Connecting to the node registery %s\n", registryAddress)
+
+	client := &registery.Client{NetAddress: registryAddress}
+	//connects to the registery
+	client.Connect()
+
+	// registers the current node address to the registery
+	count := client.AddNode(currentNodeAddress)
+	for count != nodeCount {
+		log.Printf("Waiting for other nodes %d/%d\n", count, nodeCount)
+		count = client.GetNodeCount(currentNodeAddress)
+		time.Sleep(1 * time.Second)
+	}
+
+	nodeList := client.GetNodeList(currentNodeAddress)
+	log.Printf("Node list is ready. Length of it %d\n", len(nodeList))
+
+	//closes registery connection
+	client.Close()
+
+	return nodeList
 }
 
 func getPeerAddressesFromFile(file *os.File) []string {
