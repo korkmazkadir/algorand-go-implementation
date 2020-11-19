@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -21,9 +22,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 )
-
-const totalStake = 1000
-const numberOfNodes = 100
 
 func main() {
 
@@ -62,10 +60,19 @@ func main() {
 
 	gossipNodeBufferSize := appConfig.Network.GossipNodeMessageBufferSize
 	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, nodeLogger)
-	address, err := gossipNode.Start()
+
+	hostname := getHostName()
+
+	address, err := gossipNode.Start(hostname)
 	if err != nil {
 		panic(err)
 	}
+
+	pid := os.Getpid()
+	log.Printf("PID: %d IPAddress: %s\n", pid, address)
+
+	//sets TC rules
+	setTCRules()
 
 	if *registeryAddressFlag != "" {
 		peerAddresses = connectRegisteryWaitForPeers(*registeryAddressFlag, address, appConfig.NodeCount, app)
@@ -88,9 +95,6 @@ func main() {
 	app.Start()
 
 	fmt.Println(address)
-
-	pid := os.Getpid()
-	log.Printf("PID: %d Address: %s\n", pid, address)
 
 	go func() {
 		log.Println("starting pprof")
@@ -209,4 +213,57 @@ func initLoggers(appConfig *config.Configuration) (agreementLogger *log.Logger, 
 	}
 
 	return
+}
+
+func getHostName() string {
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+
+	return hostname
+}
+
+func setTCRules() {
+
+	bandwidth := 20
+	delay := 100
+
+	log.Printf("Setting TC rules bandwidth %d Mbps Delay %d ms\n", bandwidth, delay)
+
+	tcSetExecutable, err := exec.LookPath("tcset")
+	if err != nil {
+		log.Println("WARNING: Could not find tcset in path")
+		return
+	}
+
+	args1 := strings.Fields(fmt.Sprintf("eth0 --rate %dMbps --direction incoming", bandwidth))
+	args1 = append([]string{tcSetExecutable}, args1...)
+
+	tcSetIncommingCmd := &exec.Cmd{
+		Path:   tcSetExecutable,
+		Args:   args1,
+		Stderr: os.Stdout,
+	}
+
+	err = tcSetIncommingCmd.Run()
+	if err != nil {
+		panic(fmt.Errorf("tcset incomming error: %s", err))
+	}
+
+	args2 := strings.Fields(fmt.Sprintf("eth0 --rate %dMbps --delay %dms --direction outgoing", bandwidth, delay))
+	args2 = append([]string{tcSetExecutable}, args2...)
+
+	tcSetOutgoingCmd := &exec.Cmd{
+		Path:   tcSetExecutable,
+		Args:   args2,
+		Stderr: os.Stdout,
+	}
+
+	err = tcSetOutgoingCmd.Run()
+	if err != nil {
+		panic(fmt.Errorf("tcset outgoing error: %s", err))
+	}
+
 }
