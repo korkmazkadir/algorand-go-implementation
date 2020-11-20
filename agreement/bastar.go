@@ -197,6 +197,11 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.B
 			block := incommingBlock.block
 			forwardBlock := incommingBlock.forward
 
+			if ba.validateBlock(&block) == false {
+				ba.log.Printf("WARNING: An invalid block received %s \n", ByteToBase64String(blockHash))
+				continue
+			}
+
 			if bytes.Equal(block.Hash(), blockHash) {
 				forwardBlock()
 				ba.log.Printf("Missing block received %s Time elpased: %f \n", ByteToBase64String(blockHash), time.Since(start).Seconds())
