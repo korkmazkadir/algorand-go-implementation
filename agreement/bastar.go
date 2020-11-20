@@ -131,7 +131,7 @@ func (ba *BAStar) mainLoop() {
 
 			ba.log.Printf("FINAL CONSENSUS on %s\n", ByteToBase64String(blockHash))
 
-			if proposedBlock != nil && highestPriorityProposal != nil && bytes.Equal(proposedBlock.Hash(), highestPriorityProposal.BlockHash) {
+			if proposedBlock != nil && bytes.Equal(proposedBlock.Hash(), blockHash) {
 				err := ba.blockchain.AppendBlock(*proposedBlock)
 				if err != nil {
 					panic(err)
