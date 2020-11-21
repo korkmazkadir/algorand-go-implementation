@@ -154,23 +154,18 @@ func (ba *BAStar) mainLoop() {
 
 			ba.log.Printf("TENTATIVE CONSENSUS on %s\n", ByteToBase64String(blockHash))
 
-			var missingBlock *blockchain.Block
+			var blockToAppend *blockchain.Block
 			if proposedBlock != nil && bytes.Equal(proposedBlock.Hash(), blockHash) {
-				// appends locally proposed block
-				err := ba.blockchain.AppendBlock(*proposedBlock)
-				if err != nil {
-					panic(err)
-				}
+				ba.log.Println("Appending locally proposed block to the blockchain!!")
+				blockToAppend = proposedBlock
 			} else if bytes.Equal(ba.emptyBlock.Hash(), blockHash) {
-				// appends empty block
 				ba.log.Println("Appending empty block to the blockchain!!")
-				missingBlock = ba.emptyBlock
+				blockToAppend = ba.emptyBlock
 			} else {
-				// waits for the missing block to append
-				missingBlock = ba.waitForMissingBlock(round, blockHash)
+				blockToAppend = ba.waitForMissingBlock(round, blockHash)
 			}
 
-			err := ba.blockchain.AppendBlock(*missingBlock)
+			err := ba.blockchain.AppendBlock(*blockToAppend)
 			if err != nil {
 				panic(err)
 			}
