@@ -121,7 +121,7 @@ func connectRegisteryWaitForPeers(registryAddress string, currentNodeAddress str
 	publicAddress := getPublicIPAddress()
 	if publicAddress != "" {
 		log.Printf("Public address is set to %s\n", publicAddress)
-		currentNodeAddress = publicAddress + strings.Split(currentNodeAddress, ":")[1]
+		currentNodeAddress = publicAddress + ":" + strings.Split(currentNodeAddress, ":")[1]
 		log.Printf("Current node address is set to %s\n", currentNodeAddress)
 	}
 
