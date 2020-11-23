@@ -105,6 +105,11 @@ func main() {
 
 }
 
+func getPublicIPAddress() string {
+	publicAddress := os.Getenv("PUBLIC_ADDRESS")
+	return publicAddress
+}
+
 func connectRegisteryWaitForPeers(registryAddress string, currentNodeAddress string, nodeCount int, app *agreement.BAStar) []string {
 
 	log.Printf("Connecting to the node registery %s\n", registryAddress)
@@ -112,6 +117,13 @@ func connectRegisteryWaitForPeers(registryAddress string, currentNodeAddress str
 	client := &registery.Client{NetAddress: registryAddress}
 	//connects to the registery
 	client.Connect()
+
+	publicAddress := getPublicIPAddress()
+	if publicAddress != "" {
+		log.Printf("Public address is set to %s\n", publicAddress)
+		currentNodeAddress = publicAddress + strings.Split(currentNodeAddress, ":")[1]
+		log.Printf("Current node address is set to %s\n", currentNodeAddress)
+	}
 
 	// registers the current node address to the registery
 	count := client.AddNode(currentNodeAddress)
