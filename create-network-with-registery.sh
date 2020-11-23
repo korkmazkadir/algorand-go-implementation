@@ -1,6 +1,7 @@
 #!/bin/bash
 
-read -p "number of nodes: " number_of_nodes
+read -p "The registery address: " address_of_registery
+read -p "The number of nodes: " number_of_nodes
 
 #creates the address-book.txt if it does not exists
 touch addressbook.txt
@@ -10,7 +11,7 @@ mkdir -p output
 
 for (( i=1; i<=$number_of_nodes; i++ ))
 do  
-   ./algorand-go-implementation -registery="127.0.0.1:1234"  >> addressbook.txt 2> output/"$i.log" &
+   ./algorand-go-implementation -registery="${address_of_registery}:1234"  >> addressbook.txt 2> output/"$i.log" &
    echo $! >> process.pids
    #sleep 0.1
 done
