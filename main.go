@@ -123,13 +123,8 @@ func connectRegisteryWaitForPeers(registryAddress string, currentNodeAddress str
 		log.Printf("Public address is set to %s\n", publicAddress)
 		tokens := strings.Split(currentNodeAddress, ":")
 
-		if len(tokens) == 1 {
-			currentNodeAddress = publicAddress + ":" + tokens[0]
-		} else if len(tokens) == 2 {
-			currentNodeAddress = publicAddress + ":" + tokens[1]
-		} else {
-			panic(fmt.Errorf("Public ip address could not set!!! Length of tokens %d", len(tokens)))
-		}
+		//Gets last part as port number
+		currentNodeAddress = publicAddress + ":" + tokens[len(tokens)-1]
 
 		log.Printf("Current node address is set to %s\n", currentNodeAddress)
 	}
