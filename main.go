@@ -98,7 +98,7 @@ func main() {
 
 	go func() {
 		log.Println("starting pprof")
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.Println(http.ListenAndServe(":6060", nil))
 	}()
 
 	gossipNode.Wait()
@@ -234,7 +234,10 @@ func getHostName() string {
 		panic(err)
 	}
 
-	return hostname
+	log.Printf("WARNING: using empty host name rather than %s!!!!!", hostname)
+
+	//return hostname
+	return ""
 }
 
 func setTCRules() {
