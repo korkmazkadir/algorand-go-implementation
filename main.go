@@ -101,6 +101,8 @@ func main() {
 		if address == peerAddress {
 			continue
 		}
+
+		log.Printf("Adding peer %s \n", peerAddress)
 		connectToPeer(peerAddress, gossipNode)
 		peerCount++
 	}
