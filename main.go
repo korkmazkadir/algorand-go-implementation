@@ -68,6 +68,19 @@ func main() {
 		panic(err)
 	}
 
+	//----------------Sets public IP address---------------------------
+	publicAddress := getPublicIPAddress()
+	if publicAddress != "" {
+		log.Printf("Public address is set to %s\n", publicAddress)
+		tokens := strings.Split(address, ":")
+
+		//Gets last part as port number
+		address = publicAddress + ":" + tokens[len(tokens)-1]
+
+		log.Printf("Current node address is set to %s\n", address)
+	}
+	//------------------------------------------------------------------
+
 	pid := os.Getpid()
 	log.Printf("PID: %d IPAddress: %s\n", pid, address)
 
@@ -117,17 +130,6 @@ func connectRegisteryWaitForPeers(registryAddress string, currentNodeAddress str
 	client := &registery.Client{NetAddress: registryAddress}
 	//connects to the registery
 	client.Connect()
-
-	publicAddress := getPublicIPAddress()
-	if publicAddress != "" {
-		log.Printf("Public address is set to %s\n", publicAddress)
-		tokens := strings.Split(currentNodeAddress, ":")
-
-		//Gets last part as port number
-		currentNodeAddress = publicAddress + ":" + tokens[len(tokens)-1]
-
-		log.Printf("Current node address is set to %s\n", currentNodeAddress)
-	}
 
 	// registers the current node address to the registery
 	count := client.AddNode(currentNodeAddress)
