@@ -238,10 +238,7 @@ func getHostName() string {
 		panic(err)
 	}
 
-	log.Printf("WARNING: using empty host name rather than %s!!!!!", hostname)
-
-	//return hostname
-	return ""
+	return hostname
 }
 
 func setTCRules() {
