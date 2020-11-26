@@ -68,18 +68,20 @@ func main() {
 		panic(err)
 	}
 
-	//----------------Sets public IP address---------------------------
-	publicAddress := getPublicIPAddress()
-	if publicAddress != "" {
-		log.Printf("Public address is set to %s\n", publicAddress)
-		tokens := strings.Split(address, ":")
+	/*
+		//----------------Sets public IP address---------------------------
+		publicAddress := getPublicIPAddress()
+		if publicAddress != "" {
+			log.Printf("Public address is set to %s\n", publicAddress)
+			tokens := strings.Split(address, ":")
 
-		//Gets last part as port number
-		address = publicAddress + ":" + tokens[len(tokens)-1]
+			//Gets last part as port number
+			address = publicAddress + ":" + tokens[len(tokens)-1]
 
-		log.Printf("Current node address is set to %s\n", address)
-	}
-	//------------------------------------------------------------------
+			log.Printf("Current node address is set to %s\n", address)
+		}
+		//------------------------------------------------------------------
+	*/
 
 	pid := os.Getpid()
 	log.Printf("PID: %d IPAddress: %s\n", pid, address)
@@ -237,15 +239,20 @@ func initLoggers(appConfig *config.Configuration) (agreementLogger *log.Logger, 
 
 func getHostName() string {
 
+	publicAddress := getPublicIPAddress()
+	if publicAddress != "" {
+		log.Printf("WARNING: using PUBLIC_ADDRESS %s \n", publicAddress)
+		return publicAddress
+	}
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		panic(err)
 	}
 
-	log.Printf("WARNING: using empty host name rather than %s!!!!!", hostname)
+	log.Printf("WARNING: using hostname %s \n", hostname)
 
-	//return hostname
-	return ""
+	return hostname
 }
 
 func setTCRules() {
