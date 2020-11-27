@@ -56,7 +56,7 @@ func main() {
 		fmt.Printf("could not generate key %s", err)
 	}
 
-	app := agreement.NewBAStar(appConfig.BAStar, pk, sk, memoryPool, blockchain, agreementLogger)
+	app := agreement.NewBAStar(appConfig.BAStar, appConfig.Validation, pk, sk, memoryPool, blockchain, agreementLogger)
 
 	gossipNodeBufferSize := appConfig.Network.GossipNodeMessageBufferSize
 	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, nodeLogger)

@@ -40,6 +40,14 @@ type LogParameters struct {
 	EnableGossipNodeLoging bool
 }
 
+type ValidationParameters struct {
+	//if it is false does not validate signatures and VRFs for blocks
+	ValidateBlock bool
+	//if it is false does not validate signatures and VRFs for votes
+	ValidateVote bool
+}
+
+// Configuration defines configurable parameters of the program
 type Configuration struct {
 	//number of nodes in the system
 	NodeCount int
@@ -51,6 +59,8 @@ type Configuration struct {
 	Network NetworkParameters
 	//loging parameters
 	Logger LogParameters
+	//block and vote validation parameters
+	Validation ValidationParameters
 }
 
 //ReadConfigurationFromFile reads configuration from a json file

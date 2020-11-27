@@ -32,14 +32,17 @@ type BAStar struct {
 	emptyBlock *blockchain.Block
 
 	sortition *sortition
-	params    config.ProtocolParams
+
+	params           config.ProtocolParams
+	validationParams config.ValidationParameters
+
 	context
 	wg  *sync.WaitGroup
 	log *log.Logger
 }
 
 // NewBAStar creates an instance of agrreement protocol
-func NewBAStar(params config.ProtocolParams, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger) *BAStar {
+func NewBAStar(params config.ProtocolParams, validationParams config.ValidationParameters, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger) *BAStar {
 	ba := new(BAStar)
 	ba.networkReadySig = make(chan struct{}, 1)
 
@@ -52,6 +55,7 @@ func NewBAStar(params config.ProtocolParams, publicKey []byte, privateKey []byte
 	ba.outgoingMessages = make(chan node.Message, 100)
 
 	ba.params = params
+	ba.validationParams = validationParams
 	ba.publickKey = publicKey
 	ba.privateKey = privateKey
 	ba.memoryPool = memoryPool
@@ -561,15 +565,20 @@ func (ba *BAStar) createEmptyBlock() {
 
 func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 
-	if isBlockSignatureValid(block) == false {
-		ba.log.Println("WARNING: Block signature is not valid")
-		return false
-	}
-
 	lastBlock := ba.blockchain.GetLastBlock()
 	lastBlockHash := ba.blockchain.GetLastBlockHash()
 	if bytes.Equal(lastBlockHash, block.PrevHash) == false {
 		ba.log.Println("WARNING: Block previous hash is not correct")
+		return false
+	}
+
+	if ba.validationParams.ValidateBlock == false {
+		//ba.log.Println("WARNING: Did not validate signature and VRF of the block because validation is disabled.")
+		return true
+	}
+
+	if isBlockSignatureValid(block) == false {
+		ba.log.Println("WARNING: Block signature is not valid")
 		return false
 	}
 
@@ -591,15 +600,20 @@ func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 
 func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes uint64, value []byte, sortitionHash []byte) {
 
-	if isVoteSignatureValid(&vote) == false {
-		ba.log.Println("WARNING: Vote signature is not valid")
-	}
-
 	lastBlock := ba.blockchain.GetLastBlock()
 	lastBlockHash := ba.blockchain.GetLastBlockHash()
 	if bytes.Equal(lastBlockHash, vote.LastBlockHash) == false {
 		ba.log.Printf("WARNING: Vote previous hash is not correct. Round:%d  %s != %s\n", vote.Round, ByteToBase64String(lastBlockHash), ByteToBase64String(vote.LastBlockHash))
 		return
+	}
+
+	if ba.validationParams.ValidateVote == false {
+		//ba.log.Println("WARNING: Did not validate signature and VRF of the vote because validation is disabled.")
+		return vote.VoteCount, vote.SelectedBlock, vote.VrfHash
+	}
+
+	if isVoteSignatureValid(&vote) == false {
+		ba.log.Println("WARNING: Vote signature is not valid")
 	}
 
 	round := ba.blockchain.GetBlockHeight()
