@@ -37,8 +37,10 @@ type BAStar struct {
 	validationParams config.ValidationParameters
 
 	context
-	wg  *sync.WaitGroup
-	log *log.Logger
+	wg *sync.WaitGroup
+
+	log        *log.Logger
+	statLogger *StatLogger
 }
 
 // NewBAStar creates an instance of agrreement protocol
@@ -65,6 +67,7 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 	ba.wg = &sync.WaitGroup{}
 
 	ba.log = logger
+	ba.statLogger = NewStatLogger()
 
 	return ba
 }
@@ -88,13 +91,10 @@ func (ba *BAStar) Start() {
 
 func (ba *BAStar) mainLoop() {
 
-	startTime := time.Now()
-
 	for {
 
 		currentRound := (ba.blockchain.GetBlockHeight() - 1)
-		ba.log.Printf("=====================> Round %d Finished in %f seconds <=====================\n", currentRound, time.Since(startTime).Seconds())
-		startTime = time.Now()
+		ba.statLogger.RoundStarted(currentRound)
 
 		//creates an empty block for the current round to use
 		ba.createEmptyBlock()
@@ -129,6 +129,8 @@ func (ba *BAStar) mainLoop() {
 		blockHash = ba.binaryBA(round, blockHash)
 		ba.log.Printf("Result of binary BA: %s\n", ByteToBase64String(blockHash))
 
+		ba.statLogger.EndOfBAWithoutFinalStep()
+
 		r, _ := ba.countVotes(round, StepFinal, ba.params.TSmallFinal, ba.params.TBigFinal, ba.params.LamdaStep)
 
 		if bytes.Equal(r, blockHash) {
@@ -136,18 +138,33 @@ func (ba *BAStar) mainLoop() {
 			ba.log.Printf("FINAL CONSENSUS on %s\n", ByteToBase64String(blockHash))
 
 			if proposedBlock != nil && bytes.Equal(proposedBlock.Hash(), blockHash) {
+
+				//local block received event
+				ba.statLogger.BlockReceived(true)
+				ba.statLogger.EndOfBAWithFinal(true, false, proposedBlock.Hash())
+
 				err := ba.blockchain.AppendBlock(*proposedBlock)
 				if err != nil {
 					panic(err)
 				}
+
 			} else if bytes.Equal(ba.emptyBlock.Hash(), blockHash) {
+
+				//local block received event
+				ba.statLogger.BlockReceived(true)
+				ba.statLogger.EndOfBAWithFinal(true, true, ba.emptyBlock.Hash())
+
 				ba.log.Println("Appending empty block to the blockchain!!")
 				err := ba.blockchain.AppendBlock(*ba.emptyBlock)
 				if err != nil {
 					panic(err)
 				}
 			} else {
+
+				ba.statLogger.EndOfBAWithFinal(true, false, blockHash)
 				highestPriorityBlock := ba.waitForMissingBlock(round, blockHash)
+				ba.statLogger.BlockReceived(false)
+
 				err := ba.blockchain.AppendBlock(*highestPriorityBlock)
 				if err != nil {
 					panic(err)
@@ -160,13 +177,27 @@ func (ba *BAStar) mainLoop() {
 
 			var blockToAppend *blockchain.Block
 			if proposedBlock != nil && bytes.Equal(proposedBlock.Hash(), blockHash) {
+
+				//local block received event
+				ba.statLogger.BlockReceived(true)
+				ba.statLogger.EndOfBAWithFinal(false, false, proposedBlock.Hash())
+
 				ba.log.Println("Appending locally proposed block to the blockchain!!")
 				blockToAppend = proposedBlock
 			} else if bytes.Equal(ba.emptyBlock.Hash(), blockHash) {
+
+				//local block received event
+				ba.statLogger.BlockReceived(true)
+				ba.statLogger.EndOfBAWithFinal(false, true, ba.emptyBlock.Hash())
+
 				ba.log.Println("Appending empty block to the blockchain!!")
 				blockToAppend = ba.emptyBlock
 			} else {
+
+				ba.statLogger.EndOfBAWithFinal(false, false, blockHash)
 				blockToAppend = ba.waitForMissingBlock(round, blockHash)
+				ba.statLogger.BlockReceived(false)
+
 			}
 
 			err := ba.blockchain.AppendBlock(*blockToAppend)
