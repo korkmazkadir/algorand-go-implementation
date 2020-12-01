@@ -166,7 +166,7 @@ func (ba *BAStar) mainLoop() {
 			var blockToAppend *blockchain.Block
 			if highestPriorityBlock != nil && bytes.Equal(highestPriorityBlock.Hash(), blockHash) {
 
-				ba.statLogger.EndOfBAWithFinal(false, false, proposedBlock.Hash())
+				ba.statLogger.EndOfBAWithFinal(false, false, highestPriorityBlock.Hash())
 				blockToAppend = highestPriorityBlock
 
 			} else if bytes.Equal(ba.emptyBlock.Hash(), blockHash) {
