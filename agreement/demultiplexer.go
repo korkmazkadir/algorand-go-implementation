@@ -101,6 +101,12 @@ func (d *demux) SetRound(round int) {
 		}
 	}
 
+	for r := range d.proposalChanMap {
+		if r < d.currentRound {
+			delete(d.proposalChanMap, r)
+		}
+	}
+
 }
 
 func (d *demux) GetProposalChan(round int) chan incommingProposal {
