@@ -75,3 +75,12 @@ func compareProposals(a *Proposal, b *Proposal) int {
 
 	return bytes.Compare(hashA, hashB)
 }
+
+// TODO: use sub user Index as described in the paper!!!
+func compareProposalWithBlock(a *Proposal, b *blockchain.Block) int {
+
+	hashA := digest(a.VrfProof)
+	hashB := digest(b.VrfProof)
+
+	return bytes.Compare(hashA, hashB)
+}

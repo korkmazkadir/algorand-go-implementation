@@ -260,6 +260,7 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			if highestPriorityProposal == nil || (compareProposals(highestPriorityProposal, &proposal) < 0) {
 				ba.log.Printf("Forwarding proposal for the block: %s\n", ByteToBase64String(proposal.BlockHash))
 				highestPriorityProposal = &proposal
+				highestPriorityBlock = nil
 				forwardProposal()
 			} else {
 				ba.log.Printf("Proposal Not forwarded for the block %s\n", ByteToBase64String(proposal.BlockHash))
@@ -270,11 +271,11 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			block := incommingBlock.block
 			forwardBlock := incommingBlock.forward
 
-			// this part assumes that the proposal arrives first
-			// This could create ISSUES!!!
-			if bytes.Equal(block.Hash(), highestPriorityProposal.BlockHash) {
+			if highestPriorityProposal == nil || (compareProposalWithBlock(highestPriorityProposal, &block) < 0) {
 				ba.log.Printf("Forwarding block %s\n", ByteToBase64String(block.Hash()))
 				highestPriorityBlock = &block
+				//creates a local proposal for the block
+				highestPriorityProposal = createProposal(&block)
 				forwardBlock()
 			} else {
 				ba.log.Printf("Block not forwarded %s\n", ByteToBase64String(block.Hash()))
@@ -587,11 +588,8 @@ func (ba *BAStar) submitProposal(proposedBlock *blockchain.Block) *Proposal {
 	//Submits proposal first
 	ba.BroadcastProposal(*proposal)
 
-	go func() {
-		//Submits block after the proposal
-		time.Sleep(200 * time.Millisecond)
-		ba.BroadcastBlock(*proposedBlock)
-	}()
+	//submits a block without waiting
+	ba.BroadcastBlock(*proposedBlock)
 
 	ba.log.Printf("Proposal and the block broadcasted: %s \n", ByteToBase64String(proposal.BlockHash))
 
