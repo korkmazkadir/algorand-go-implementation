@@ -272,17 +272,17 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			forwardBlock := incommingBlock.forward
 
 			if highestPriorityProposal == nil || (compareProposalWithBlock(highestPriorityProposal, &block) < 0) {
-				ba.log.Printf("Forwarding block %s\n", ByteToBase64String(block.Hash()))
 				highestPriorityBlock = &block
 				//creates a local proposal for the block local
 				highestPriorityProposal = createProposal(&block)
-			} else {
-				ba.log.Printf("Block not forwarded %s\n", ByteToBase64String(block.Hash()))
 			}
 
 			//forwards the block
 			if compareProposalWithBlock(highestPriorityProposal, &block) == 0 {
+				ba.log.Printf("Forwarding block %s\n", ByteToBase64String(block.Hash()))
 				forwardBlock()
+			} else {
+				ba.log.Printf("Block not forwarded %s\n", ByteToBase64String(block.Hash()))
 			}
 
 		case <-timeout:
