@@ -258,9 +258,21 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			forwardProposal := incommingProposal.forward
 
 			if highestPriorityProposal == nil || (compareProposals(highestPriorityProposal, &proposal) < 0) {
-				ba.log.Printf("Forwarding proposal for the block: %s\n", ByteToBase64String(proposal.BlockHash))
 				highestPriorityProposal = &proposal
-				highestPriorityBlock = nil
+
+				/*
+					if highestPriorityBlock != nil && compareProposalWithBlock(highestPriorityProposal, highestPriorityBlock) == 0 {
+						panic(fmt.Errorf("will remove the block"))
+					}
+
+					highestPriorityBlock = nil
+				*/
+
+			}
+
+			//forwards the proposal
+			if compareProposals(highestPriorityProposal, &proposal) == 0 {
+				ba.log.Printf("Forwarding proposal for the block: %s\n", ByteToBase64String(proposal.BlockHash))
 				forwardProposal()
 			} else {
 				ba.log.Printf("Proposal Not forwarded for the block %s\n", ByteToBase64String(proposal.BlockHash))
@@ -271,14 +283,10 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			block := incommingBlock.block
 			forwardBlock := incommingBlock.forward
 
-			if highestPriorityProposal == nil || (compareProposalWithBlock(highestPriorityProposal, &block) < 0) {
+			if highestPriorityProposal == nil || (compareProposalWithBlock(highestPriorityProposal, &block) <= 0) {
 				highestPriorityBlock = &block
 				//creates a local proposal for the block local
 				highestPriorityProposal = createProposal(&block)
-			}
-
-			//forwards the block
-			if compareProposalWithBlock(highestPriorityProposal, &block) == 0 {
 				ba.log.Printf("Forwarding block %s\n", ByteToBase64String(block.Hash()))
 				forwardBlock()
 			} else {
@@ -290,7 +298,7 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			if highestPriorityProposal == nil {
 				ba.log.Println("No proposal received!!!")
 			} else {
-				ba.log.Printf("Highest priority proposal for the block %s \n", ByteToBase64String(highestPriorityProposal.BlockHash))
+				ba.log.Printf("Highest priority proposal for the block %s  Block received %t \n", ByteToBase64String(highestPriorityProposal.BlockHash), highestPriorityBlock != nil)
 			}
 
 			/*
