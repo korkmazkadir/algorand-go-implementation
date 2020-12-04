@@ -219,7 +219,7 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHash []byte) *blockchain.B
 			forwardBlock := incommingBlock.forward
 
 			if ba.validateBlock(&block) == false {
-				ba.log.Printf("WARNING: An invalid block received %s \n", ByteToBase64String(blockHash))
+				ba.log.Printf("WARNING: An invalid block received %s \n", ByteToBase64String(block.Hash()))
 				continue
 			}
 
@@ -282,6 +282,11 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 
 			block := incommingBlock.block
 			forwardBlock := incommingBlock.forward
+
+			if ba.validateBlock(&block) == false {
+				ba.log.Printf("WARNING: An invalid block received %s \n", ByteToBase64String(block.Hash()))
+				continue
+			}
 
 			if highestPriorityProposal == nil || (compareProposalWithBlock(highestPriorityProposal, &block) <= 0) {
 				highestPriorityBlock = &block
