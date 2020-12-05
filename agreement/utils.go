@@ -38,6 +38,11 @@ func signVote(vote *Vote, privateKey []byte) {
 	vote.Signature = ed25519.Sign(privateKey, voteHash)
 }
 
+func isProposalSignatureValid(proposal *Proposal) bool {
+	proposalHash := proposal.Hash()
+	return ed25519.Verify(proposal.Issuer, proposalHash, proposal.Signature)
+}
+
 func isBlockSignatureValid(block *blockchain.Block) bool {
 	blockHash := block.Hash()
 	return ed25519.Verify(block.Issuer, blockHash, block.Signature)

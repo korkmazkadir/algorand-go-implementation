@@ -257,6 +257,11 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			proposal := incommingProposal.proposal
 			forwardProposal := incommingProposal.forward
 
+			if ba.validateProposal(&proposal) == false {
+				ba.log.Printf("WARNING: An invalid proposal received %s \n", ByteToBase64String(proposal.Hash()))
+				continue
+			}
+
 			if highestPriorityProposal == nil || (compareProposals(highestPriorityProposal, &proposal) < 0) {
 				highestPriorityProposal = &proposal
 
@@ -624,6 +629,46 @@ func (ba *BAStar) createEmptyBlock() {
 	round := ba.blockchain.GetBlockHeight()
 	ba.emptyBlock = ba.memoryPool.CreateEmptyBlock(previousBlock, round)
 	ba.log.Printf("Empty block created %s \n", ByteToBase64String(ba.emptyBlock.Hash()))
+}
+
+func (ba *BAStar) validateProposal(proposal *Proposal) bool {
+
+	lastBlock := ba.blockchain.GetLastBlock()
+	lastBlockHash := ba.blockchain.GetLastBlockHash()
+	if bytes.Equal(lastBlockHash, proposal.PrevHash) == false {
+		ba.log.Println("WARNING: Block previous hash is not correct")
+		return false
+	}
+
+	if ba.validationParams.ValidateBlock == false {
+		//ba.log.Println("WARNING: Did not validate signature and VRF of the block because validation is disabled.")
+		return true
+	}
+
+	if isProposalSignatureValid(proposal) == false {
+		ba.log.Println("WARNING: Proposal signature is not valid")
+		return false
+	}
+
+	seed := string(lastBlock.SeedHash)
+	threshold := ba.params.ThresholdProposer
+	role := RoleProposer
+	userMoney := ba.params.UserMoney
+	totalMoney := ba.params.TotalMoney
+
+	//Locally calculates the vrf hash
+	//Should do it for blocks also
+	vrfHash := digest(proposal.VrfProof)
+
+	result := ba.sortition.Verify(proposal.Issuer, vrfHash, proposal.VrfProof, seed, threshold, role, userMoney, totalMoney)
+
+	if result == 0 {
+		ba.log.Println("WARNING: Proposal VRF block is not valid")
+		return false
+	}
+
+	return true
+
 }
 
 func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
