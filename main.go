@@ -47,8 +47,9 @@ func main() {
 	agreementLogger, memoryPoolLogger, blockchainLogger, nodeLogger := initLoggers(appConfig)
 
 	//inits blockchain and memory pool
-	BlockPayloadSize := appConfig.Blockchain.BlockPayloadSize
-	memoryPool := blockchain.NewMemoryPool(BlockPayloadSize, memoryPoolLogger)
+	blockPayloadSize := appConfig.Blockchain.BlockPayloadSize
+	stopOnRound := appConfig.Blockchain.StopOnRound
+	memoryPool := blockchain.NewMemoryPool(blockPayloadSize, memoryPoolLogger)
 	blockchain := blockchain.NewBlockchain(blockchainLogger)
 
 	pk, sk, err := ed25519.GenerateKey(nil)
@@ -56,7 +57,7 @@ func main() {
 		fmt.Printf("could not generate key %s", err)
 	}
 
-	app := agreement.NewBAStar(appConfig.BAStar, appConfig.Validation, pk, sk, memoryPool, blockchain, agreementLogger)
+	app := agreement.NewBAStar(appConfig.BAStar, appConfig.Validation, pk, sk, memoryPool, blockchain, agreementLogger, stopOnRound)
 
 	gossipNodeBufferSize := appConfig.Network.GossipNodeMessageBufferSize
 	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, nodeLogger)

@@ -24,8 +24,9 @@ type ProtocolParams struct {
 
 type BlockchainPrameters struct {
 	BlockPayloadSize int
-	//RemoveOldBlocks          bool
-	//RemovePayloadAfterAppend bool
+	//if it is given blockchain stops on the given round
+	//0 means do not stop at all!
+	StopOnRound int
 }
 
 type NetworkParameters struct {

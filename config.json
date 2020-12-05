@@ -13,7 +13,8 @@
 		"LamdaStepVar": 5
 	},
 	"Blockchain": {
-		"BlockPayloadSize": 1000000
+		"BlockPayloadSize": 1000000,
+		"StopOnRound": 10
 	},
 	"Network": {
 		"GossipNodeMessageBufferSize": 100,
@@ -26,7 +27,7 @@
 		"EnableGossipNodeLoging": false
 	},
 	"Validation":{
-		"ValidateBlock": false,
-		"ValidateVote":	false
+		"ValidateBlock": true,
+		"ValidateVote":	true
 	}
 }

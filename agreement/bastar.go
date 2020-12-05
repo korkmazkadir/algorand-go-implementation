@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -39,12 +40,14 @@ type BAStar struct {
 	context
 	wg *sync.WaitGroup
 
+	stopOnRound int
+
 	log        *log.Logger
 	statLogger *StatLogger
 }
 
 // NewBAStar creates an instance of agrreement protocol
-func NewBAStar(params config.ProtocolParams, validationParams config.ValidationParameters, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger) *BAStar {
+func NewBAStar(params config.ProtocolParams, validationParams config.ValidationParameters, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger, stopOnRound int) *BAStar {
 	ba := new(BAStar)
 	ba.networkReadySig = make(chan struct{}, 1)
 
@@ -68,6 +71,8 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 
 	ba.log = logger
 	ba.statLogger = NewStatLogger()
+
+	ba.stopOnRound = stopOnRound
 
 	return ba
 }
@@ -93,8 +98,14 @@ func (ba *BAStar) mainLoop() {
 
 	for {
 
-		currentRound := (ba.blockchain.GetBlockHeight() - 1)
+		currentRound := ba.blockchain.GetBlockHeight() - 1
 		ba.statLogger.RoundStarted(currentRound)
+
+		if ba.stopOnRound == currentRound {
+			ba.log.Printf("Target round %d is reached. Node will exit after sleeping 1 minute\n", currentRound)
+			time.Sleep(1 * time.Minute)
+			os.Exit(0)
+		}
 
 		//creates an empty block for the current round to use
 		ba.createEmptyBlock()
