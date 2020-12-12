@@ -42,6 +42,8 @@ func newDemux(currentRound int) *demux {
 	return d
 }
 
+func dummy() {}
+
 func (d *demux) EnqueueMessage(message node.Message) {
 
 	switch message.Tag {
@@ -60,12 +62,16 @@ func (d *demux) EnqueueMessage(message node.Message) {
 
 		vote := Vote{}
 		node.DecodeFromByte(message.Payload, &vote)
-		inVote := incommingVote{vote: vote, forward: message.Forward}
+		//Changes mforward callback with an empty function
+		//TODO: remove this later
+		inVote := incommingVote{vote: vote, forward: dummy}
 		wait, result := d.enqueueVote(inVote)
 		if result == false {
 			log.Printf("Waiting to enqueue a vote. Round %d\n", vote.Round)
 			wait()
 		}
+		//Forwards message as soon as possible!!!!!
+		message.Forward()
 
 	case tagProposal:
 		proposal := Proposal{}
