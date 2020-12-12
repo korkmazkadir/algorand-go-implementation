@@ -9,7 +9,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -88,7 +87,7 @@ func main() {
 	log.Printf("PID: %d IPAddress: %s\n", pid, address)
 
 	//sets TC rules
-	setTCRules()
+	//setTCRules()
 
 	if *registeryAddressFlag != "" {
 		peerAddresses = connectRegisteryWaitForPeers(*registeryAddressFlag, address, appConfig.NodeCount, app)
@@ -256,6 +255,7 @@ func getHostName() string {
 	return hostname
 }
 
+/*
 func setTCRules() {
 
 	bandwidth := 20
@@ -298,3 +298,4 @@ func setTCRules() {
 	}
 
 }
+*/
