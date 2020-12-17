@@ -336,50 +336,6 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 
 }
 
-func (ba *BAStar) waitForBlocks(proposedBlock *blockchain.Block) *blockchain.Block {
-
-	ba.log.Printf("Waiting for proposals...")
-
-	sleepTime := time.Duration(ba.params.LamdaPriority + ba.params.LamdaStepVar)
-	timeout := time.After(sleepTime * time.Second)
-
-	blockChan := ba.demultiplexer.GetBlockChan(ba.blockchain.GetBlockHeight())
-
-	var highestPriorityBlock = proposedBlock
-
-	for {
-
-		select {
-		case incommingBlock := <-blockChan:
-
-			block := incommingBlock.block
-			forwardBlock := incommingBlock.forward
-
-			//TODO write a valdate method for blocks
-
-			if highestPriorityBlock == nil || (compareBlocks(highestPriorityBlock, &block) < 0) {
-				ba.log.Printf("Block forwarded: %s\n", ByteToBase64String(block.Hash()))
-				highestPriorityBlock = &block
-				forwardBlock()
-			} else {
-				ba.log.Printf("Not forwarded: %s result: %d \n", ByteToBase64String(block.Hash()), compareBlocks(highestPriorityBlock, &block))
-			}
-
-		case <-timeout:
-
-			if highestPriorityBlock == nil {
-				highestPriorityBlock = ba.emptyBlock
-			}
-
-			ba.log.Printf("Highest priority block: %s \n", ByteToBase64String(highestPriorityBlock.Hash()))
-
-			return highestPriorityBlock
-		}
-
-	}
-
-}
-
 func (ba *BAStar) reduction(round int, blockHash []byte) []byte {
 
 	stepThreshold := ba.params.TSmallStep
@@ -406,10 +362,10 @@ func (ba *BAStar) reduction(round int, blockHash []byte) []byte {
 	return blockHash2
 }
 
-func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, blockHash []byte) {
+func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, blockHash [][]byte) {
 
 	lastBlock := ba.blockchain.GetLastBlock()
-	seed := lastBlock.SeedHash
+	seed := lastBlock.SeedHash()
 
 	role := fmt.Sprintf("%s|%d|%s", RoleCommittee, round, step)
 	userMoney := ba.params.UserMoney
@@ -442,7 +398,7 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, block
 	ba.localVote = &vote
 }
 
-func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, stepThreshold int, timeout int) (blockHash []byte, isTimerExprired bool) {
+func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, stepThreshold int, timeout int) (blockHash [][]byte, isTimerExprired bool) {
 
 	counts := make(map[string]uint64)
 	voters := make(map[string][]byte)
@@ -453,8 +409,8 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 
 	if ba.localVote != nil {
 		voters[string(ba.localVote.Issuer)] = ba.localVote.Issuer
-		counts[string(ba.localVote.SelectedBlock)] = ba.localVote.VoteCount
-		ba.log.Printf("Local Vote for %s --> count:%d\n", ByteToBase64String(ba.localVote.SelectedBlock), ba.localVote.VoteCount)
+		counts[string(CombinedHash(ba.localVote.SelectedBlock))] = ba.localVote.VoteCount
+		ba.log.Printf("Local Vote for %s --> count:%d\n", ByteToBase64String(CombinedHash(ba.localVote.SelectedBlock)), ba.localVote.VoteCount)
 	}
 
 	for {
@@ -475,7 +431,7 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			}
 
 			voters[string(vote.Issuer)] = vote.Issuer
-			counts[string(selectedBlockHash)] = counts[string(selectedBlockHash)] + numVotes
+			counts[string(CombinedHash(selectedBlockHash))] = counts[string(CombinedHash(selectedBlockHash))] + numVotes
 
 			//ba.log.Printf("Vote for %s --> count:%d\n", ByteToBase64String(selectedBlockHash), numVotes)
 
@@ -483,8 +439,8 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			//ba.log.Println("Vote forwarded!")
 
 			//TODO: Check this line, ceil float64 does not seems good
-			if float64(counts[string(selectedBlockHash)]) > math.Ceil(float64(voteThreshold)*float64(stepThreshold)) {
-				ba.log.Printf("A block has reached the target vote count: %s\n", ByteToBase64String(selectedBlockHash))
+			if float64(counts[string(CombinedHash(selectedBlockHash))]) > math.Ceil(float64(voteThreshold)*float64(stepThreshold)) {
+				ba.log.Printf("A block has reached the target vote count: %s\n", ByteToBase64String(CombinedHash(selectedBlockHash)))
 				ba.printVoteCount(counts)
 				return selectedBlockHash, false
 			}
@@ -506,7 +462,7 @@ func (ba *BAStar) printVoteCount(voteCountMap map[string]uint64) {
 
 }
 
-func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
+func (ba *BAStar) binaryBA(round int, blockHash [][]byte) [][]byte {
 
 	step := 1
 	r := blockHash
@@ -521,7 +477,7 @@ func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
 
 		if timerExpired {
 			r = blockHash
-		} else if bytes.Equal(emptyBlockHash, r) == false {
+		} else if bytes.Equal(emptyBlockHash, CombinedHash(r)) == false {
 
 			// TODO: I have removed this. Consider to open later
 			//votes for the same block for next 3 rounds
@@ -542,8 +498,8 @@ func (ba *BAStar) binaryBA(round int, blockHash []byte) []byte {
 		ba.committeeVote(round, strconv.Itoa(step), ba.params.TSmallStep, r)
 		r, timerExpired = ba.countVotes(round, strconv.Itoa(step), ba.params.TBigStep, ba.params.TSmallStep, ba.params.LamdaStep)
 		if timerExpired {
-			r = emptyBlockHash
-		} else if bytes.Equal(r, emptyBlockHash) {
+			r = [][]byte{emptyBlockHash}
+		} else if bytes.Equal(CombinedHash(r), emptyBlockHash) {
 
 			// TODO: I have removed this. Consider to open later
 			//for i := 1; i < 4; i++ {
@@ -594,7 +550,7 @@ func (ba *BAStar) proposeBlock() *blockchain.Block {
 	block.VrfProof = vrfProof
 
 	//calculates the seed for the block
-	ba.calculateSeed(block, ba.blockchain.GetLastBlock())
+	ba.calculateSeed(block, ba.blockchain.GetLastBlockSeedHash())
 
 	//signs block
 	signBlock(block, ba.privateKey)
@@ -630,15 +586,17 @@ func (ba *BAStar) submitProposal(proposedBlock *blockchain.Block) *Proposal {
 }
 
 // calculateSeed calculates seed field of a block
-func (ba *BAStar) calculateSeed(block *blockchain.Block, previousBlock *blockchain.Block) {
-	vrfInput := fmt.Sprintf("%s|%d", previousBlock.SeedHash, block.Index)
+func (ba *BAStar) calculateSeed(block *blockchain.Block, previousBlockSeedHash []byte) {
+	vrfInput := fmt.Sprintf("%s|%d", previousBlockSeedHash, block.Index)
 	block.SeedHash, block.SeedProof = ba.sortition.vrf.ProduceProof([]byte(vrfInput))
 }
 
 func (ba *BAStar) createEmptyBlock() {
 	previousBlock := ba.blockchain.GetLastBlock()
 	round := ba.blockchain.GetBlockHeight()
-	ba.emptyBlock = ba.memoryPool.CreateEmptyBlock(previousBlock, round)
+	roundEmptyBlock := ba.memoryPool.CreateEmptyBlock(previousBlock, round)
+	ba.emptyBlock = blockchain.NewMacroBlock([]blockchain.Block{roundEmptyBlock})
+
 	ba.log.Printf("Empty block created %s \n", ByteToBase64String(ba.emptyBlock.Hash()))
 }
 
@@ -661,7 +619,7 @@ func (ba *BAStar) validateProposal(proposal *Proposal) bool {
 		return false
 	}
 
-	seed := string(lastBlock.SeedHash)
+	seed := string(lastBlock.SeedHash())
 	threshold := ba.params.ThresholdProposer
 	role := RoleProposer
 	userMoney := ba.params.UserMoney
@@ -701,7 +659,7 @@ func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 		return false
 	}
 
-	seed := string(lastBlock.SeedHash)
+	seed := string(lastBlock.SeedHash())
 	threshold := ba.params.ThresholdProposer
 	role := RoleProposer
 	userMoney := ba.params.UserMoney
@@ -717,7 +675,7 @@ func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 	return true
 }
 
-func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes uint64, value []byte, sortitionHash []byte) {
+func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes uint64, value [][]byte, sortitionHash []byte) {
 
 	lastBlock := ba.blockchain.GetLastBlock()
 	lastBlockHash := ba.blockchain.GetLastBlockHash()
@@ -736,7 +694,7 @@ func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes 
 	}
 
 	round := ba.blockchain.GetBlockHeight()
-	seed := string(lastBlock.SeedHash)
+	seed := string(lastBlock.SeedHash())
 	role := fmt.Sprintf("%s|%d|%s", RoleCommittee, round, step)
 	userMoney := ba.params.UserMoney
 	totalMoney := ba.params.TotalMoney

@@ -22,7 +22,7 @@ type Vote struct {
 	Round         int
 	Step          string
 	LastBlockHash []byte
-	SelectedBlock []byte
+	SelectedBlock [][]byte
 	Signature     []byte
 }
 
