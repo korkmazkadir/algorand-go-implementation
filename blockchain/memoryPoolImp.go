@@ -55,12 +55,12 @@ func (mp *memoryPoolImp) CreateBlock(previousBlockHash []byte, blockIndex int) *
 	return &block
 }
 
-func (mp *memoryPoolImp) CreateEmptyBlock(previousBlock *Block, blockIndex int) *Block {
+func (mp *memoryPoolImp) CreateEmptyBlock(previousBlock *MacroBlock, blockIndex int) *Block {
 
 	emptyBlock := new(Block)
 	emptyBlock.PrevHash = previousBlock.Hash()
 	emptyBlock.Index = blockIndex
-	emptyBlock.Seed = previousBlock.Seed
+	emptyBlock.SeedHash = previousBlock.SeedHash()
 
 	return emptyBlock
 }

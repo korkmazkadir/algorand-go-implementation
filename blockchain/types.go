@@ -55,7 +55,7 @@ type MemoryPool interface {
 	AddTransaction(transaction Transaction)
 	//RemoveTransactions(block Block)
 	CreateBlock(previousBlockHash []byte, blockIndex int) *Block
-	CreateEmptyBlock(previousBlock *Block, blockIndex int) *Block
+	CreateEmptyBlock(previousBlock *MacroBlock, blockIndex int) *Block
 }
 
 // Blockchain defines the interface of blockchain
