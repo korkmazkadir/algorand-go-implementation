@@ -20,6 +20,9 @@ type ProtocolParams struct {
 	LamdaBlock    int
 	LamdaStep     int
 	LamdaStepVar  int
+
+	//ConcurrencyConstant is the number of blocks will be appended to blockchain
+	ConcurrencyConstant int
 }
 
 type BlockchainPrameters struct {

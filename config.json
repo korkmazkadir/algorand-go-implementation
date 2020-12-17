@@ -10,7 +10,8 @@
 		"LamdaPriority": 5,
 		"LamdaBlock": 60,
 		"LamdaStep": 20,
-		"LamdaStepVar": 5
+		"LamdaStepVar": 5,
+		"ConcurrencyConstant": 3
 	},
 	"Blockchain": {
 		"BlockPayloadSize": 1000000,
