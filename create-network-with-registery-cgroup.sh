@@ -15,33 +15,49 @@ function throttle()
    process_index=$1
    pid=$2
 
-   gmajor="1"
    printf -v gminor "%04x" "$process_index"
    
+
+   group_name_suffix="algorand_${process_index}"
+
    # Create a net_cls cgroup
-   group_name="net_cls:algorand_${process_index}"
-   cgcreate -g "${group_name}"
+   group_name="net_cls:${group_name_suffix}"
+   sudo cgcreate -g "${group_name}"
 
    # Set the class id for the cgroup
-   echo "0x${gmajor}${gminor}" > /sys/fs/cgroup/net_cls/slow/net_cls.classid
+   # By default gmajor is 1
+   echo_cmd="echo 0x1${gminor} > /sys/fs/cgroup/net_cls/${group_name_suffix}/net_cls.classid"
+   sudo sh -c  "${echo_cmd}"
 
    # Classify packets from pid into cgroup
-   cgclassify -g "${group_name}" $pid
+   sudo cgclassify -g "${group_name}" "${pid}"
 
-
-   printf -v class_id "1:%d" "$process_index"
+   # By default gmajor is 1
+   #printf -v class_id "1:%d" "$process_index"
+   printf -v class_id "1:%x" "$process_index"
 
    # Rate limit packets in cgroup class
    #tc qdisc add dev eno1 root handle 1: htb
-   tc filter add dev eno1 parent 1: handle 1: cgroup
-   tc class add dev eno1 parent 1: classid $class_id htb rate 20mbps
+   #sudo tc filter add dev eno1 parent 1: handle 1: cgroup
+   sudo tc class add dev $nic parent 1: classid "${class_id}" htb rate 20mbit
 }
 
 #Delete previous control groups
-cgdelete -r net_cls:/test-subgroup
+sudo cgdelete -r net_cls:/
+
+#Defines network interface to apply tc rules
+nic="eno1"
+
+#Delete previous tc rules
+sudo tc qdisc del dev $nic root
+
 
 #Adds root qdisc
-tc qdisc add dev eno1 root handle 1: htb
+sudo tc qdisc add dev $nic root handle 1: htb
+sudo tc filter add dev $nic parent 1: handle 1: cgroup
+
+
+# tc -s -d class show dev lo
 
 for (( i=1; i<=$number_of_nodes; i++ ))
 do  
