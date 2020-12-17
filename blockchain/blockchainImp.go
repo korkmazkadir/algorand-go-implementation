@@ -9,8 +9,8 @@ import (
 )
 
 type blockchainImp struct {
-	blocks        []Block
-	lastBlock     *Block
+	blocks        []MacroBlock
+	lastBlock     *MacroBlock
 	lastBlockHash []byte
 	blockHeight   int
 	log           *log.Logger
@@ -20,19 +20,22 @@ type blockchainImp struct {
 func NewBlockchain(logger *log.Logger) Blockchain {
 
 	blockChain := new(blockchainImp)
-	blockChain.blocks = make([]Block, 0)
+	blockChain.blocks = make([]MacroBlock, 0)
 
 	genesisBlock := Block{
 		Timestamp: 0,
 		Issuer:    []byte{128, 33, 77, 11, 96, 197, 158},
 		Index:     0,
 	}
+
 	genesisBlock.SeedHash = digest([]byte("07.11.2020 I am here"))
-	genesisHash := genesisBlock.Hash()
-	blockChain.lastBlockHash = genesisHash
-	blockChain.blocks = append(blockChain.blocks, genesisBlock)
+	genesisMacroBlock := NewMacroBlock([]Block{genesisBlock})
+	genesisHash := genesisMacroBlock.Hash()
+
+	blockChain.lastBlockHash = genesisMacroBlock.Hash()
+	blockChain.blocks = append(blockChain.blocks, *genesisMacroBlock)
 	blockChain.blockHeight = 1
-	blockChain.lastBlock = &genesisBlock
+	blockChain.lastBlock = genesisMacroBlock
 	blockChain.log = logger
 
 	blockChain.log.Println("New blochain created.")
@@ -41,13 +44,13 @@ func NewBlockchain(logger *log.Logger) Blockchain {
 	return blockChain
 }
 
-func (b *blockchainImp) AppendBlock(block Block) error {
+func (b *blockchainImp) AppendBlock(block MacroBlock) error {
 
-	if block.Index != b.blockHeight {
-		return fmt.Errorf("current blockchain height %d is not equal to block index %d", b.blockHeight, block.Index)
+	if block.index != b.blockHeight {
+		return fmt.Errorf("current blockchain height %d is not equal to block index %d", b.blockHeight, block.index)
 	}
 
-	if bytes.Equal(block.PrevHash, b.lastBlockHash) == false {
+	if bytes.Equal(block.prevHash, b.lastBlockHash) == false {
 		return errors.New("previous block hash is not equal to the hash of the last appende block")
 	}
 
@@ -59,7 +62,9 @@ func (b *blockchainImp) AppendBlock(block Block) error {
 	b.lastBlockHash = blockHash
 
 	//Removes payload of the block to use less memory!!!!
-	block.Transactions = nil
+	for _, microBlock := range block.microBlocks {
+		microBlock.Transactions = nil
+	}
 
 	//Removes the previously appended block to use less memory!!!
 	if len(b.blocks) == 2 {
@@ -76,7 +81,7 @@ func (b *blockchainImp) GetBlockHeight() int {
 	return b.blockHeight
 }
 
-func (b *blockchainImp) GetLastBlock() *Block {
+func (b *blockchainImp) GetLastBlock() *MacroBlock {
 	return b.lastBlock
 }
 
@@ -85,5 +90,5 @@ func (b *blockchainImp) GetLastBlockHash() []byte {
 }
 
 func (b *blockchainImp) GetLastBlockSeedHash() []byte {
-	return b.lastBlock.SeedHash
+	return b.lastBlock.SeedHash()
 }
