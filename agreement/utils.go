@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 
 	"../blockchain"
 )
@@ -113,8 +114,12 @@ func XORBytes(a, b []byte) ([]byte, error) {
 func CombinedHash(blockHashes [][]byte) []byte {
 
 	var err error
-	combinedHash := blockHashes[0].Hash()
-	for i := 1; i < len(mb.microBlocks); i++ {
+	combinedHash := blockHashes[0]
+	for i := 1; i < len(blockHashes); i++ {
+		if blockHashes[i] == nil {
+			continue
+		}
+
 		combinedHash, err = XORBytes(combinedHash, blockHashes[i])
 		if err != nil {
 			panic(fmt.Errorf("xor byte slice error: ", err))
@@ -122,4 +127,59 @@ func CombinedHash(blockHashes [][]byte) []byte {
 	}
 
 	return combinedHash
+}
+
+// GetMissingBlocks calculates missing block list, if all blocks are aveilable returns nil
+func GetMissingBlocks(selection SelectionVector, receivedBlocks []blockchain.Block) [][]byte {
+
+	missingBlocks := [][]byte{}
+
+	for _, blockHash := range selection.Hashes {
+		if BlockAvailable(blockHash, receivedBlocks) == false {
+			missingBlocks = append(missingBlocks, blockHash)
+		}
+	}
+
+	if len(missingBlocks) == 0 {
+		return nil
+	}
+
+	return missingBlocks
+}
+
+// ConstructMacroBlock creates a macro block to append the blockchain
+func ConstructMacroBlock(selection SelectionVector, receivedBlocks []blockchain.Block) *blockchain.MacroBlock {
+	blocks := []blockchain.Block{}
+
+	for _, blockHash := range selection.Hashes {
+		for _, block := range receivedBlocks {
+			if bytes.Equal(blockHash, block.Hash()) {
+				blocks = append(blocks, block)
+			}
+		}
+	}
+
+	return blockchain.NewMacroBlock(blocks)
+}
+
+// BlockAvailable returns false if slice doesnot contain the block with a specific hash
+func BlockAvailable(blockHash []byte, receivedBlocks []blockchain.Block) bool {
+
+	for _, b := range receivedBlocks {
+		if bytes.Equal(b.Hash(), blockHash) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func CalculateBlockIndex(vrfProof []byte, concurrencyConstant int) int {
+	t := &big.Int{}
+	t.SetBytes(digest(vrfProof))
+
+	c := &big.Int{}
+	c.SetInt64(int64(concurrencyConstant))
+
+	return int(t.Mod(t, c).Uint64())
 }

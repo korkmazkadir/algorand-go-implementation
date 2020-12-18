@@ -1,6 +1,9 @@
 package agreement
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 const (
 	StepReductionOne = "REDUCTION_ONE"
@@ -22,13 +25,14 @@ type Vote struct {
 	Round         int
 	Step          string
 	LastBlockHash []byte
-	SelectedBlock [][]byte
-	Signature     []byte
+	SelectionVector
+	//TODO update signature!!!!
+	Signature []byte
 }
 
 func (v Vote) hashString() string {
 	//SenderPK|VrfHash|VrfProof|VoteCount|Round|Step|LastBlockHash|SelectedBlock
-	return fmt.Sprintf("%x|%x|%x|%d|%d|%s|%x|%x", v.Issuer, v.VrfHash, v.VrfProof, v.VoteCount, v.Round, v.Step, v.LastBlockHash, v.SelectedBlock)
+	return fmt.Sprintf("%x|%x|%x|%d|%d|%s|%x|%x", v.Issuer, v.VrfHash, v.VrfProof, v.VoteCount, v.Round, v.Step, v.LastBlockHash, v.SelectionVector.Hash())
 }
 
 // Hash calculatest he hash of the Vote
@@ -62,4 +66,71 @@ func (p *Proposal) hashString() string {
 func (p *Proposal) Hash() []byte {
 	hashString := p.hashString()
 	return digest([]byte(hashString))
+}
+
+// SelectionVector defines
+type SelectionVector struct {
+	//Block hash must be in the correct index
+	//Max size is equal to ConcurrencyConstant edfined in the config file
+	Hashes    [][]byte
+	proposals []*Proposal
+	conCons   int
+	hash      []byte
+}
+
+// NewSelectionVector creates a selection vector
+func NewSelectionVector(selectionHashes ...[]byte) SelectionVector {
+	return SelectionVector{Hashes: selectionHashes}
+}
+
+func NewSelectionVectorWithSize(concurrencyConstant int) SelectionVector {
+	hashes := [][]byte{}
+	proposals := []*Proposal{}
+
+	for i := 0; i < concurrencyConstant; i++ {
+		hashes = append(hashes, nil)
+		proposals = append(proposals, nil)
+	}
+
+	return SelectionVector{Hashes: hashes, proposals: proposals, conCons: concurrencyConstant}
+}
+
+// Hash calculates combined hash of the selection vector
+func (sv *SelectionVector) Hash() []byte {
+	if sv.hash == nil {
+		sv.hash = CombinedHash(sv.Hashes)
+	}
+	return sv.hash
+}
+
+func (sv *SelectionVector) Add(proposal Proposal) bool {
+
+	blockIndex := CalculateBlockIndex(proposal.VrfProof, sv.conCons)
+	if sv.proposals[blockIndex] == nil || compareProposals(sv.proposals[blockIndex], &proposal) < 0 {
+		sv.proposals[blockIndex] = &proposal
+		sv.Hashes[blockIndex] = proposal.BlockHash
+		return true
+	}
+
+	return false
+}
+
+func (sv *SelectionVector) Size() int {
+
+	counter := 0
+	for _, blockHash := range sv.Hashes {
+		if blockHash != nil {
+			counter++
+		}
+	}
+	return counter
+}
+
+// SelectsEmptyBlock returns true if selection vector contains only the empty block hash
+func (sv *SelectionVector) SelectsEmptyBlock(emptyBlockHash []byte) bool {
+	if len(sv.Hashes) != 1 {
+		return false
+	}
+
+	return bytes.Equal(sv.Hashes[0], emptyBlockHash)
 }
