@@ -97,9 +97,15 @@ func NewSelectionVectorWithSize(concurrencyConstant int) SelectionVector {
 
 // Hash calculates combined hash of the selection vector
 func (sv *SelectionVector) Hash() []byte {
+
+	if len(sv.Hashes) == 0 {
+		return nil
+	}
+
 	if sv.hash == nil {
 		sv.hash = CombinedHash(sv.Hashes)
 	}
+
 	return sv.hash
 }
 
@@ -109,6 +115,9 @@ func (sv *SelectionVector) Add(proposal Proposal) bool {
 	if sv.proposals[blockIndex] == nil || compareProposals(sv.proposals[blockIndex], &proposal) < 0 {
 		sv.proposals[blockIndex] = &proposal
 		sv.Hashes[blockIndex] = proposal.BlockHash
+		return true
+	} else if compareProposals(sv.proposals[blockIndex], &proposal) == 0 {
+		//To, forward block or proposal
 		return true
 	}
 

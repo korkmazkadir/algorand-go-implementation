@@ -61,6 +61,13 @@ func (b *blockchainImp) AppendBlock(block MacroBlock) error {
 	b.blockHeight = b.blockHeight + 1
 	b.lastBlockHash = blockHash
 
+	b.log.Printf("New block appended: %s\n", base64.StdEncoding.EncodeToString(blockHash))
+	for _, mb := range block.microBlocks {
+		b.log.Printf("[%s]-------> %s\n", base64.StdEncoding.EncodeToString(blockHash[:10]), base64.StdEncoding.EncodeToString(mb.Hash()[:10]))
+	}
+
+	b.log.Printf("Blockchain contains  %d blocks\n", len(b.blocks))
+
 	//Removes payload of the block to use less memory!!!!
 	for _, microBlock := range block.microBlocks {
 		microBlock.Transactions = nil
@@ -70,9 +77,6 @@ func (b *blockchainImp) AppendBlock(block MacroBlock) error {
 	if len(b.blocks) == 2 {
 		b.blocks = b.blocks[1:]
 	}
-
-	b.log.Printf("New block appended: %s\n", base64.StdEncoding.EncodeToString(blockHash))
-	b.log.Printf("Blockchain contains  %d blocks\n", len(b.blocks))
 
 	return nil
 }
