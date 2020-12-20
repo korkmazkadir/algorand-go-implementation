@@ -44,6 +44,8 @@ type BAStar struct {
 
 	log        *log.Logger
 	statLogger *StatLogger
+
+	messageCountLogger
 }
 
 // NewBAStar creates an instance of agrreement protocol
@@ -74,6 +76,8 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 
 	ba.stopOnRound = stopOnRound
 
+	ba.messageCountLogger.round = 1
+
 	return ba
 }
 
@@ -98,7 +102,7 @@ func (ba *BAStar) mainLoop() {
 
 	for {
 
-		currentRound := ba.blockchain.GetBlockHeight() - 1
+		currentRound := ba.blockchain.GetBlockHeight()
 		ba.statLogger.RoundStarted(currentRound)
 
 		if ba.stopOnRound == currentRound {
@@ -210,7 +214,7 @@ func (ba *BAStar) mainLoop() {
 
 		//sets round on demux
 		ba.demultiplexer.SetRound(ba.blockchain.GetBlockHeight())
-
+		ba.messageCountLogger.setRound(ba.blockchain.GetBlockHeight())
 	}
 }
 
@@ -250,6 +254,7 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockch
 			for _, blockHash := range blockHashes {
 
 				if bytes.Equal(block.Hash(), blockHash) {
+					ba.messageCountLogger.forwardingBlock()
 					forwardBlock()
 					ba.log.Printf("Missing block received %s Time elpased: %f \n", ByteToBase64String(blockHash), time.Since(start).Seconds())
 					receivedBlocks = append(receivedBlocks, block)
@@ -299,6 +304,7 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			//forwards the proposal
 			if selectionVector.Add(proposal) {
 				ba.log.Printf("Forwarding proposal for the block: %s\n", ByteToBase64String(proposal.BlockHash))
+				ba.messageCountLogger.forwardingProposal()
 				forwardProposal()
 			} else {
 				ba.log.Printf("Proposal Not forwarded for the block %s\n", ByteToBase64String(proposal.BlockHash))
@@ -318,6 +324,7 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 			if selectionVector.Add(*localProposal) {
 				receivedBlocks = append(receivedBlocks, block)
 				ba.log.Printf("Forwarding block %s\n", ByteToBase64String(block.Hash()))
+				ba.messageCountLogger.forwardingBlock()
 				forwardBlock()
 			} else {
 				ba.log.Printf("Block not forwarded %s\n", ByteToBase64String(block.Hash()))
@@ -395,6 +402,7 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, selec
 	signVote(&vote, ba.privateKey)
 
 	ba.log.Printf("Voting for step: %s block: %s \n", step, ByteToBase64String(vote.SelectionVector.Hash()))
+	ba.messageCountLogger.forwardingVote()
 	ba.BroadcastVote(vote)
 
 	ba.localVote = &vote
@@ -437,6 +445,7 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 
 			//ba.log.Printf("Vote for %s --> count:%d\n", ByteToBase64String(selectedBlockHash), numVotes)
 
+			ba.messageCountLogger.forwardingVote()
 			forwardCallback()
 			//ba.log.Println("Vote forwarded!")
 
@@ -573,9 +582,11 @@ func (ba *BAStar) submitProposal(proposedBlock *blockchain.Block) *Proposal {
 	signProposal(proposal, ba.privateKey)
 
 	//Submits proposal first
+	ba.messageCountLogger.forwardingProposal()
 	ba.BroadcastProposal(*proposal)
 
 	//submits a block without waiting
+	ba.messageCountLogger.forwardingBlock()
 	ba.BroadcastBlock(*proposedBlock)
 
 	ba.log.Printf("Proposal and the block broadcasted: %s \n", ByteToBase64String(proposal.BlockHash))
