@@ -114,9 +114,22 @@ func XORBytes(a, b []byte) ([]byte, error) {
 func CombinedHash(blockHashes [][]byte) []byte {
 
 	var err error
-	combinedHash := blockHashes[0]
+	//combinedHash := blockHashes[0]
+	var combinedHash []byte
+
+	//skips nill or empty values
+	//TODO: fix this part
+	// block hash is not equal appended block hash
+	// blockchain and this part should use same hash algorithm
 	for i := 1; i < len(blockHashes); i++ {
-		if blockHashes[i] == nil {
+		if blockHashes[i] != nil && len(blockHashes[i]) != 0 {
+			combinedHash = blockHashes[i]
+			break
+		}
+	}
+
+	for i := 1; i < len(blockHashes); i++ {
+		if blockHashes[i] == nil || len(blockHashes[i]) == 0 {
 			continue
 		}
 
@@ -135,7 +148,8 @@ func GetMissingBlocks(selection SelectionVector, receivedBlocks []blockchain.Blo
 	missingBlocks := [][]byte{}
 
 	for _, blockHash := range selection.Hashes {
-		if BlockAvailable(blockHash, receivedBlocks) == false {
+		// if will guaranty that no one will wait for empty hash
+		if BlockAvailable(blockHash, receivedBlocks) == false && len(blockHash) > 0 {
 			missingBlocks = append(missingBlocks, blockHash)
 		}
 	}
