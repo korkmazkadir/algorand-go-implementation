@@ -65,7 +65,11 @@ func (sl *StatLogger) EndOfBAWithFinal(finalConsensusReached bool, consensusOnEm
 	sl.data.endOfBAWithFinal = time.Since(sl.data.startTime).Seconds()
 	sl.data.finalConsensusReached = finalConsensusReached
 	sl.data.consensusOnEmptyBlock = consensusOnEmptyBlock
-	sl.data.blockHash = ByteToBase64String(blockHash[0:10])
+	if len(blockHash) > 0 {
+		sl.data.blockHash = ByteToBase64String(blockHash[0:10])
+	} else {
+		sl.data.blockHash = "EMPTY_BLOCK"
+	}
 }
 
 func (sl *StatLogger) printLine() {
