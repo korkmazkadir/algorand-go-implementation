@@ -114,29 +114,29 @@ func XORBytes(a, b []byte) ([]byte, error) {
 func CombinedHash(blockHashes [][]byte) []byte {
 
 	var err error
-	//combinedHash := blockHashes[0]
+
 	var combinedHash []byte
 
-	//skips nill or empty values
-	//TODO: fix this part
-	// block hash is not equal appended block hash
-	// blockchain and this part should use same hash algorithm
-	for i := 1; i < len(blockHashes); i++ {
-		if blockHashes[i] != nil && len(blockHashes[i]) != 0 {
-			combinedHash = blockHashes[i]
-			break
-		}
-	}
+	for i := 0; i < len(blockHashes); i++ {
 
-	for i := 1; i < len(blockHashes); i++ {
-		if blockHashes[i] == nil || len(blockHashes[i]) == 0 {
-			continue
+		if combinedHash == nil {
+			// first initiate combined hash
+			if len(blockHashes[i]) != 0 {
+				combinedHash = blockHashes[i]
+			}
+
+		} else {
+			// then calculates combined hash
+			if len(blockHashes[i]) == 0 {
+				continue
+			}
+
+			combinedHash, err = XORBytes(combinedHash, blockHashes[i])
+			if err != nil {
+				panic(fmt.Errorf("xor byte slice error: ", err))
+			}
 		}
 
-		combinedHash, err = XORBytes(combinedHash, blockHashes[i])
-		if err != nil {
-			panic(fmt.Errorf("xor byte slice error: ", err))
-		}
 	}
 
 	return combinedHash

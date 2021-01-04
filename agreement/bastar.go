@@ -262,7 +262,7 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockch
 
 			}
 
-			ba.log.Printf("Discarting block %s round: %d \n", ByteToBase64String(block.Hash()), block.Index)
+			//ba.log.Printf("Discarting block %s round: %d \n", ByteToBase64String(block.Hash()), block.Index)
 
 		}
 	}
@@ -320,9 +320,11 @@ func (ba *BAStar) waitForProposals(localProposal *Proposal, localBlock *blockcha
 				continue
 			}
 
+			// adds the received block to the received block list
+			receivedBlocks = append(receivedBlocks, block)
+
 			localProposal := createProposal(&block)
 			if selectionVector.Add(*localProposal) {
-				receivedBlocks = append(receivedBlocks, block)
 				ba.log.Printf("Forwarding block %s\n", ByteToBase64String(block.Hash()))
 				ba.messageCountLogger.forwardingBlock()
 				forwardBlock()
