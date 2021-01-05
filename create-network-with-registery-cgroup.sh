@@ -33,13 +33,12 @@ function throttle()
    sudo cgclassify -g "${group_name}" "${pid}"
 
    # By default gmajor is 1
-   #printf -v class_id "1:%d" "$process_index"
    printf -v class_id "1:%x" "$process_index"
 
    # Rate limit packets in cgroup class
-   #tc qdisc add dev eno1 root handle 1: htb
-   #sudo tc filter add dev eno1 parent 1: handle 1: cgroup
    sudo tc class add dev $nic parent 1: classid "${class_id}" htb rate 20mbit
+   # Adds delay
+   sudo tc qdisc add dev $nic parent "${class_id}" netem delay 50ms
 }
 
 #Delete previous control groups
