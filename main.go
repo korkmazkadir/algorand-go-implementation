@@ -97,10 +97,13 @@ func main() {
 	rand.Shuffle(len(peerAddresses), func(i, j int) { peerAddresses[i], peerAddresses[j] = peerAddresses[j], peerAddresses[i] })
 	peerCount := 0
 	for _, peerAddress := range peerAddresses {
+
 		if peerCount == appConfig.Network.PeerCount {
 			break
 		}
-		if address == peerAddress {
+
+		//if peer address equals the current node address or peers is from the same machine
+		if address == peerAddress || strings.Split(address, ":")[0] == strings.Split(peerAddress, ":")[0] {
 			continue
 		}
 
