@@ -212,9 +212,14 @@ func (ba *BAStar) mainLoop() {
 
 		}
 
-		//sets round on demux
+		//Sets round on demux
 		ba.demultiplexer.SetRound(ba.blockchain.GetBlockHeight())
 		ba.messageCountLogger.setRound(ba.blockchain.GetBlockHeight())
+
+		//Sets payload size of appended block for logging purposes
+		payloadSize := ba.blockchain.GetLastBlock().PayloadSize()
+		ba.statLogger.SetAppendedPayloadSize(payloadSize)
+
 	}
 }
 

@@ -146,3 +146,12 @@ func (mb *MacroBlock) SeedHash() []byte {
 
 	return mb.seedHash
 }
+
+// PayloadSize returns size of the payload in bytes
+func (mb *MacroBlock) PayloadSize() int {
+	size := 0
+	for _, microBlock := range mb.microBlocks {
+		size += len(microBlock.Transactions)
+	}
+	return size
+}

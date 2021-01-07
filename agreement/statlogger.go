@@ -19,6 +19,8 @@ type statData struct {
 	consensusOnEmptyBlock bool
 
 	blockHash string
+
+	payloadSize int
 }
 
 // StatLogger defines a custom logger to log the important events
@@ -53,6 +55,11 @@ func (sl *StatLogger) RoundStarted(round int) {
 func (sl *StatLogger) BlockReceived(localBlockAppended bool) {
 	sl.data.blockReceived = time.Since(sl.data.startTime).Seconds()
 	sl.data.localBlockAppended = localBlockAppended
+}
+
+// SetAppendedPayloadSize sets appended paylaod size
+func (sl *StatLogger) SetAppendedPayloadSize(payloadSize int) {
+	sl.data.payloadSize = payloadSize
 }
 
 // EndOfBAWithoutFinalStep marks the end of BA without final event
@@ -108,6 +115,9 @@ func (sl *StatLogger) printLine() {
 
 	// appends block hash first 8 character encoded in base64
 	line = fmt.Sprintf("%s%s%s", line, delimeter, sl.data.blockHash)
+
+	// appends payload size
+	line = fmt.Sprintf("%s%s%d", line, delimeter, sl.data.payloadSize)
 
 	sl.log.Println(line)
 }
