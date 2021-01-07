@@ -1,6 +1,8 @@
 package agreement
 
 import (
+	"log"
+
 	"../blockchain"
 	"../filter"
 	"github.com/korkmazkadir/go-rpc-node/node"
@@ -38,10 +40,15 @@ type incommingVote struct {
 // HandleMessage is calld by the GosipNode
 func (a *applicationImp) HandleMessage(message node.Message) {
 
-	isAdded := a.messageFilter.IfNotContainsAdd(message.Hash())
+	messageHash := message.Hash()
+	isAdded := a.messageFilter.IfNotContainsAdd(messageHash)
 	if isAdded == false {
 		// it means that message is already processed!
 		return
+	}
+
+	if len(message.Payload) > 5000 {
+		log.Printf("Message will be enqueued: %s \n", ByteToBase64String([]byte(messageHash)))
 	}
 
 	//It might blocks

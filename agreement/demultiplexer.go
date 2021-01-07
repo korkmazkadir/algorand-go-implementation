@@ -181,6 +181,7 @@ func (d *demux) enqueueBlock(ib incommingBlock) (waitFunction, bool) {
 
 	select {
 	case d.blockChanMap[ib.block.Index] <- ib:
+		log.Printf("----> Block is enqueued %s \n", ByteToBase64String(ib.block.Hash()))
 		return nil, true
 	default:
 		log.Println("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
