@@ -48,7 +48,7 @@ func (a *applicationImp) HandleMessage(message node.Message) {
 	}
 
 	if len(message.Payload) > 5000 {
-		log.Printf("Message will be enqueued: %s \n", ByteToBase64String([]byte(messageHash)))
+		log.Printf("Message will be enqueued: %s \n", message.Base64EncodedHash())
 	}
 
 	//It might blocks
