@@ -67,23 +67,20 @@ func (a *applicationImp) SignalChannel() chan struct{} {
 func (a *applicationImp) BroadcastBlock(block blockchain.Block) {
 	payload := node.EncodeToByte(block)
 	message := node.NewMessage(tagBlock, payload)
-	a.outgoingMessages <- message
-
 	a.messageFilter.IfNotContainsAdd(message.Hash())
+	a.outgoingMessages <- message
 }
 
 func (a *applicationImp) BroadcastProposal(proposal Proposal) {
 	payload := node.EncodeToByte(proposal)
 	message := node.NewMessage(tagProposal, payload)
-	a.outgoingMessages <- message
-
 	a.messageFilter.IfNotContainsAdd(message.Hash())
+	a.outgoingMessages <- message
 }
 
 func (a *applicationImp) BroadcastVote(vote Vote) {
 	payload := node.EncodeToByte(vote)
 	message := node.NewMessage(tagVote, payload)
-	a.outgoingMessages <- message
-
 	a.messageFilter.IfNotContainsAdd(message.Hash())
+	a.outgoingMessages <- message
 }
