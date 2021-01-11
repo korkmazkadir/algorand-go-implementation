@@ -12,7 +12,6 @@ import (
 
 	"../blockchain"
 	"../config"
-	"../filter"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
@@ -52,9 +51,6 @@ type BAStar struct {
 func NewBAStar(params config.ProtocolParams, validationParams config.ValidationParameters, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger, stopOnRound int) *BAStar {
 	ba := new(BAStar)
 	ba.networkReadySig = make(chan struct{}, 1)
-
-	// TTL 60 seconds
-	ba.messageFilter = filter.NewUniqueMessageFilter(60)
 
 	//Creates a paylaod codec
 	ba.demultiplexer = newDemux(1)

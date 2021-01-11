@@ -4,14 +4,12 @@ import (
 	"log"
 
 	"../blockchain"
-	"../filter"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
 // applicationImp implements the necessary interface for GosipNode
 type applicationImp struct {
 	networkReadySig  chan struct{}
-	messageFilter    *filter.UniqueMessageFilter
 	demultiplexer    *demux
 	outgoingMessages chan node.Message
 }
@@ -40,13 +38,6 @@ type incommingVote struct {
 // HandleMessage is calld by the GosipNode
 func (a *applicationImp) HandleMessage(message node.Message) {
 
-	messageHash := message.Hash()
-	isAdded := a.messageFilter.IfNotContainsAdd(messageHash)
-	if isAdded == false {
-		// it means that message is already processed!
-		return
-	}
-
 	if len(message.Payload) > 5000 {
 		log.Printf("Message will be enqueued: %s \n", message.Base64EncodedHash())
 	}
@@ -67,20 +58,20 @@ func (a *applicationImp) SignalChannel() chan struct{} {
 func (a *applicationImp) BroadcastBlock(block blockchain.Block) {
 	payload := node.EncodeToByte(block)
 	message := node.NewMessage(tagBlock, payload)
-	a.messageFilter.IfNotContainsAdd(message.Hash())
+	a.demultiplexer.MarkAsEnqueued(block.Index, message.Hash())
 	a.outgoingMessages <- message
 }
 
 func (a *applicationImp) BroadcastProposal(proposal Proposal) {
 	payload := node.EncodeToByte(proposal)
 	message := node.NewMessage(tagProposal, payload)
-	a.messageFilter.IfNotContainsAdd(message.Hash())
+	a.demultiplexer.MarkAsEnqueued(proposal.Index, message.Hash())
 	a.outgoingMessages <- message
 }
 
 func (a *applicationImp) BroadcastVote(vote Vote) {
 	payload := node.EncodeToByte(vote)
 	message := node.NewMessage(tagVote, payload)
-	a.messageFilter.IfNotContainsAdd(message.Hash())
+	a.demultiplexer.MarkAsEnqueued(vote.Round, message.Hash())
 	a.outgoingMessages <- message
 }
