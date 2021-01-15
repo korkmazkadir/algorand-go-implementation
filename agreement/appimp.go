@@ -1,8 +1,6 @@
 package agreement
 
 import (
-	"log"
-
 	"../blockchain"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
@@ -38,13 +36,8 @@ type incommingVote struct {
 // HandleMessage is calld by the GosipNode
 func (a *applicationImp) HandleMessage(message node.Message) {
 
-	if len(message.Payload) > 5000 {
-		log.Printf("Message will be enqueued: %s \n", message.Base64EncodedHash())
-	}
-
-	//It might blocks
+	//It might block
 	a.demultiplexer.EnqueueMessage(message)
-
 }
 
 func (a *applicationImp) OutgoingMessageChannel() chan node.Message {

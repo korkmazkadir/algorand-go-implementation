@@ -197,10 +197,9 @@ func (d *demux) enqueueBlock(ib incommingBlock, messageHash string) (waitFunctio
 
 	select {
 	case d.blockChanMap[ib.block.Index] <- ib:
-		log.Printf("----> Block is enqueued %s \n", ByteToBase64String(ib.block.Hash()))
 		return nil, true
 	default:
-		log.Println("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
+		log.Printf("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
 		waitFunc := func() {
 			d.blockChanMap[ib.block.Index] <- ib
 			log.Printf("Late block enqueue. Round: %d Hash: %s\n", ib.block.Index, ByteToBase64String(ib.block.Hash()))
