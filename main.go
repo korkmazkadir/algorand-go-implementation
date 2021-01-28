@@ -17,9 +17,6 @@ import (
 	"./config"
 	"github.com/korkmazkadir/coordinator/registery"
 	"github.com/korkmazkadir/go-rpc-node/node"
-
-	"net/http"
-	_ "net/http/pprof"
 )
 
 func main() {
@@ -115,11 +112,6 @@ func main() {
 	app.Start()
 
 	fmt.Println(address)
-
-	go func() {
-		log.Println("starting pprof")
-		log.Println(http.ListenAndServe(":6060", nil))
-	}()
 
 	gossipNode.Wait()
 

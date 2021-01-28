@@ -80,15 +80,16 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 // Start runs the agreement protocol
 func (ba *BAStar) Start() {
 
+	ba.wg.Add(1)
+
 	go func() {
+		defer ba.wg.Done()
 		//waits for network signal
 		<-ba.networkReadySig
 
 		time.Sleep(30 * time.Second)
 
 		ba.log.Println("Started...")
-
-		ba.wg.Add(1)
 		ba.mainLoop()
 	}()
 
