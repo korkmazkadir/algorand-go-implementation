@@ -32,6 +32,15 @@ function throttle()
    # Classify packets from pid into cgroup
    sudo cgclassify -g "${group_name}" "${pid}"
 
+   # adds tasks to specific cgroup one by one
+   for task_folder in /proc/"${pid}"/task/*; do
+      task_id="${task_folder##*/}"
+      sudo cgclassify -g "${group_name}" "${task_id}"
+   done
+
+   #tasks_of_process=$(ls /proc/"${pid}"/task)
+   #echo "${task_id}" > sudo tee -a "/sys/fs/cgroup/net_cls/${group_name_suffix}/tasks" > /dev/null
+
    # By default gmajor is 1
    printf -v class_id "1:%x" "$process_index"
 
