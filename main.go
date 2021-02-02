@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"./agreement"
-	"./blockchain"
-	"./config"
+	"github.com/korkmazkadir/algorand-go-implementation/agreement"
+	"github.com/korkmazkadir/algorand-go-implementation/blockchain"
+	"github.com/korkmazkadir/algorand-go-implementation/config"
 	"github.com/korkmazkadir/coordinator/registery"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
@@ -56,7 +56,9 @@ func main() {
 	app := agreement.NewBAStar(appConfig.BAStar, appConfig.Validation, pk, sk, memoryPool, blockchain, agreementLogger, stopOnRound)
 
 	gossipNodeBufferSize := appConfig.Network.GossipNodeMessageBufferSize
-	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, nodeLogger)
+	fanOutSize := appConfig.Network.FanOut
+	bigMessageMutex := appConfig.Network.BigMessageMutex
+	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, fanOutSize, bigMessageMutex, nodeLogger)
 
 	hostname := getHostName()
 

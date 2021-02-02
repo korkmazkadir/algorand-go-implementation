@@ -11,7 +11,7 @@
 		"LamdaBlock": 60,
 		"LamdaStep": 20,
 		"LamdaStepVar": 5,
-		"ConcurrencyConstant": 3
+		"ConcurrencyConstant": 1
 	},
 	"Blockchain": {
 		"BlockPayloadSize": 1000000,
@@ -19,7 +19,9 @@
 	},
 	"Network": {
 		"GossipNodeMessageBufferSize": 100,
-		"PeerCount": 4
+		"PeerCount": 4,
+		"FanOut":3,
+		"BigMessageMutex": false
 	},
 	"Logger": {
 		"EnableAgreementLoging": true,
@@ -28,7 +30,7 @@
 		"EnableGossipNodeLoging": false
 	},
 	"Validation":{
-		"ValidateBlock": true,
-		"ValidateVote":	true
+		"ValidateBlock": false,
+		"ValidateVote":	false
 	}
 }

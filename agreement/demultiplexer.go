@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"../blockchain"
+	"github.com/korkmazkadir/algorand-go-implementation/blockchain"
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 

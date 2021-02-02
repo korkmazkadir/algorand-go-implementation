@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"../blockchain"
+	"github.com/korkmazkadir/algorand-go-implementation/blockchain"
 )
 
 func digest(input []byte) []byte {

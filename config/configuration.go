@@ -35,6 +35,8 @@ type BlockchainPrameters struct {
 type NetworkParameters struct {
 	GossipNodeMessageBufferSize int
 	PeerCount                   int
+	FanOut                      int
+	BigMessageMutex             bool
 }
 
 type LogParameters struct {
