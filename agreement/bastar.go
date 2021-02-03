@@ -120,6 +120,15 @@ func (ba *BAStar) mainLoop() {
 		localProposal := ba.submitProposal(proposedBlock)
 
 		selections, highestPriorityBlocks := ba.waitForProposals(localProposal, proposedBlock)
+
+		//waits for the missing blocks
+		missingBlocks := GetMissingBlocks(selections, highestPriorityBlocks)
+		if missingBlocks != nil {
+			receivedBlocks := ba.waitForMissingBlock(round, missingBlocks)
+			highestPriorityBlocks = append(highestPriorityBlocks, receivedBlocks...)
+		}
+		///////////////////////////////
+
 		ba.statLogger.BlockReceived(false)
 
 		var selection SelectionVector
