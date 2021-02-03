@@ -32,5 +32,12 @@
 	"Validation":{
 		"ValidateBlock": false,
 		"ValidateVote":	false
+	},
+	"Host":{
+		"LimitBandwidth": true,
+		"Bandwidth" : 20,
+		"ApplyTCDelay": true,
+		"TCDelay" : 50,
+		"InterfaceName" : "eno1"
 	}
 }

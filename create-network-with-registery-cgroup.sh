@@ -3,6 +3,14 @@
 read -p "The registery address: " address_of_registery
 read -p "The number of nodes: " number_of_nodes
 
+#read parameters from the config file
+limit_bandwidth=$( jq .Host.LimitBandwidth config.json )
+bandwidth_value=$( jq .Host.Bandwidth config.json )
+apply_tc_delay=$( jq .Host.ApplyTCDelay config.json )
+tc_delay_value=$( jq .Host.TCDelay config.json )
+nic=$( jq -r .Host.InterfaceName config.json )
+
+
 #creates the address-book.txt if it does not exists
 touch addressbook.txt
 touch process.pids
@@ -45,16 +53,20 @@ function throttle()
    printf -v class_id "1:%x" "$process_index"
 
    # Rate limit packets in cgroup class
-   sudo tc class add dev $nic parent 1: classid "${class_id}" htb rate 20mbit
+   sudo tc class add dev $nic parent 1: classid "${class_id}" htb rate "${bandwidth_value}mbit"
    # Adds delay
-   sudo tc qdisc add dev $nic parent "${class_id}" netem delay 50ms
+
+   if [ "$apply_tc_delay" = true ] ; then
+      sudo tc qdisc add dev $nic parent "${class_id}" netem delay "${tc_delay_value}ms"
+   fi
+
 }
 
 #Delete previous control groups
 sudo cgdelete -r net_cls:/
 
 #Defines network interface to apply tc rules
-nic="eno1"
+#nic="eno1"
 
 #Delete previous tc rules
 sudo tc qdisc del dev $nic root
@@ -72,7 +84,9 @@ do
    ./algorand-go-implementation -registery="${address_of_registery}:1234"  >> addressbook.txt 2> output/"$i.log" &
    algorand_pid=$!
 
-   throttle $i $algorand_pid
+   if [ "$limit_bandwidth" = true ] ; then
+      throttle $i $algorand_pid
+   fi
 
    echo $algorand_pid >> process.pids
    #sleep 0.1
