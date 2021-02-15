@@ -580,6 +580,8 @@ func (ba *BAStar) proposeBlock() *blockchain.Block {
 	//ba.BroadcastBlock(*block)
 
 	ba.log.Printf("Proposed block: %s (Not Broadcasted!!!)\n", ByteToBase64String(block.Hash()))
+	ba.log.Printf("Proposed block seed Hash is %s \n", ByteToBase64String(block.SeedHash))
+	ba.log.Printf("Proposed block seed Proof is %s \n", ByteToBase64String(block.SeedProof))
 
 	return block
 }

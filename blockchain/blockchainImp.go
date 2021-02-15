@@ -62,6 +62,8 @@ func (b *blockchainImp) AppendBlock(block MacroBlock) error {
 	b.lastBlockHash = blockHash
 
 	b.log.Printf("New block appended: %s\n", base64.StdEncoding.EncodeToString(blockHash))
+	b.log.Printf("The seed hash of the appended block is %s\n", base64.StdEncoding.EncodeToString(block.SeedHash()))
+
 	for _, mb := range block.microBlocks {
 		b.log.Printf("[%s]-------> %s\n", base64.StdEncoding.EncodeToString(blockHash[:10]), base64.StdEncoding.EncodeToString(mb.Hash()[:10]))
 	}
