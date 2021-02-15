@@ -134,7 +134,7 @@ func (mb *MacroBlock) SeedHash() []byte {
 	}
 
 	var err error
-	macroSeedHash := mb.microBlocks[0].Hash()
+	macroSeedHash := mb.microBlocks[0].SeedHash
 	for i := 1; i < len(mb.microBlocks); i++ {
 		macroSeedHash, err = XORBytes(macroSeedHash, mb.microBlocks[i].SeedHash)
 		if err != nil {
