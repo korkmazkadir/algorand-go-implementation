@@ -129,7 +129,7 @@ func (mb *MacroBlock) SeedHash() []byte {
 
 	mb.ifEmptyPanic()
 
-	if mb.hash != nil {
+	if mb.seedHash != nil {
 		return mb.seedHash
 	}
 
