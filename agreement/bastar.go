@@ -119,6 +119,7 @@ func (ba *BAStar) mainLoop() {
 
 		localProposal := ba.submitProposal(proposedBlock)
 
+		//WARNING: highestPriorityBlocks name is missleading because this contains all the  blocks received!!!
 		selections, highestPriorityBlocks := ba.waitForProposals(localProposal, proposedBlock)
 
 		//waits for the missing blocks
@@ -249,7 +250,7 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockch
 	receivedBlocks := []blockchain.Block{}
 
 	numberOfBlocksToWait := len(blockHashes)
-	for len(receivedBlocks) != numberOfBlocksToWait {
+	for numberOfBlocksToWait != 0 {
 
 		select {
 		case incommingBlock := <-blockChan:
@@ -262,13 +263,17 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockch
 				continue
 			}
 
+			// adds the block to received block list without looking the missing block list
+			receivedBlocks = append(receivedBlocks, block)
+
 			for _, blockHash := range blockHashes {
 
 				if bytes.Equal(block.Hash(), blockHash) {
-					ba.messageCountLogger.forwardingBlock()
-					forwardBlock()
 					ba.log.Printf("Missing block received %s Time elpased: %f \n", ByteToBase64String(blockHash), time.Since(start).Seconds())
-					receivedBlocks = append(receivedBlocks, block)
+					ba.messageCountLogger.forwardingBlock()
+					// forwards the block if it is one of the missin blocks
+					forwardBlock()
+					numberOfBlocksToWait--
 				}
 
 			}
