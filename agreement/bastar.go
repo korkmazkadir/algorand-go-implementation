@@ -124,8 +124,12 @@ func (ba *BAStar) mainLoop() {
 
 		//waits for the missing blocks
 		missingBlocks := GetMissingBlocks(selections, highestPriorityBlocks)
+		timeoutForWaitforBlock := false
+
 		if missingBlocks != nil {
-			receivedBlocks := ba.waitForMissingBlock(round, missingBlocks)
+			var receivedBlocks []blockchain.Block
+			// waits only Lamda blocks secodns to receive the block
+			receivedBlocks, timeoutForWaitforBlock = ba.waitForMissingBlock(round, missingBlocks, true)
 			highestPriorityBlocks = append(highestPriorityBlocks, receivedBlocks...)
 		}
 		///////////////////////////////
@@ -134,7 +138,8 @@ func (ba *BAStar) mainLoop() {
 
 		var selection SelectionVector
 
-		if selections.Size() == 0 {
+		if selections.Size() == 0 || timeoutForWaitforBlock {
+			ba.log.Println("Starting BA with empty block because could not get the block!!!!")
 			selection = NewSelectionVector(ba.emptyBlock.Hash())
 		} else {
 			selection = selections
@@ -172,7 +177,8 @@ func (ba *BAStar) mainLoop() {
 			} else {
 
 				ba.statLogger.EndOfBAWithFinal(true, false, selection.Hash())
-				receivedBlocks := ba.waitForMissingBlock(round, missingBlocks)
+				// waits until; getting blocks
+				receivedBlocks, _ := ba.waitForMissingBlock(round, missingBlocks, false)
 				highestPriorityBlocks = append(highestPriorityBlocks, receivedBlocks...)
 				blockToAppend = ConstructMacroBlock(selection, highestPriorityBlocks)
 				ba.statLogger.BlockReceived(false)
@@ -205,7 +211,8 @@ func (ba *BAStar) mainLoop() {
 			} else {
 
 				ba.statLogger.EndOfBAWithFinal(false, false, selection.Hash())
-				receivedBlocks := ba.waitForMissingBlock(round, missingBlocks)
+				// waits until; getting blocks
+				receivedBlocks, _ := ba.waitForMissingBlock(round, missingBlocks, false)
 				highestPriorityBlocks = append(highestPriorityBlocks, receivedBlocks...)
 				blockToAppend = ConstructMacroBlock(selection, highestPriorityBlocks)
 				ba.statLogger.BlockReceived(false)
@@ -230,7 +237,7 @@ func (ba *BAStar) mainLoop() {
 	}
 }
 
-func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockchain.Block {
+func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte, enableTimer bool) ([]blockchain.Block, bool) {
 
 	start := time.Now()
 
@@ -244,6 +251,9 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockch
 			//return ba.emptyBlock
 		}
 	}
+
+	//Timeout to wait for a block
+	timeout := time.After(time.Duration(ba.params.LamdaBlock) * time.Second)
 
 	blockChan := ba.demultiplexer.GetBlockChan(round)
 
@@ -280,10 +290,19 @@ func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte) []blockch
 
 			//ba.log.Printf("Discarting block %s round: %d \n", ByteToBase64String(block.Hash()), block.Index)
 
+		case <-timeout:
+
+			if enableTimer == false {
+				ba.log.Println("Block wait timer disabled!!!!")
+				continue
+			}
+
+			ba.log.Println("Could not receive the block")
+			return receivedBlocks, true
 		}
 	}
 
-	return receivedBlocks
+	return receivedBlocks, false
 }
 
 //TODO: Update name of the function: waitForProposalsAndBlocks
