@@ -159,7 +159,7 @@ func (ba *BAStar) mainLoop() {
 
 		ba.statLogger.EndOfBAWithoutFinalStep()
 
-		r, _ := ba.countVotes(round, StepFinal, ba.params.TSmallFinal, ba.params.TBigFinal, ba.params.LamdaStep)
+		r, _ := ba.countVotes(round, StepFinal, ba.params.TBigFinal, ba.params.TSmallFinal, ba.params.LamdaStep)
 
 		if bytes.Equal(r.Hash(), selection.Hash()) {
 
