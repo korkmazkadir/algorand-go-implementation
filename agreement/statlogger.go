@@ -21,6 +21,8 @@ type statData struct {
 	blockHash string
 
 	payloadSize int
+
+	electedAsLeader bool
 }
 
 // StatLogger defines a custom logger to log the important events
@@ -55,6 +57,7 @@ func (sl *StatLogger) RoundStarted(round int) {
 
 	sl.data.round = round
 	sl.data.startTime = time.Now()
+	sl.data.electedAsLeader = false
 }
 
 // BlockReceived marks the time of block receive event for the corresponding round
@@ -83,6 +86,11 @@ func (sl *StatLogger) EndOfBAWithFinal(finalConsensusReached bool, consensusOnEm
 	} else {
 		sl.data.blockHash = "EMPTY_BLOCK"
 	}
+}
+
+// ElectedAsLeader marks as elected leader for the round
+func (sl *StatLogger) ElectedAsLeader() {
+	sl.data.electedAsLeader = true
 }
 
 func (sl *StatLogger) printLine() {
@@ -124,6 +132,9 @@ func (sl *StatLogger) printLine() {
 
 	// appends payload size
 	line = fmt.Sprintf("%s%s%d", line, delimeter, sl.data.payloadSize)
+
+	// appends elected leader
+	line = fmt.Sprintf("%s%s%t", line, delimeter, sl.data.electedAsLeader)
 
 	sl.log.Println(line)
 }

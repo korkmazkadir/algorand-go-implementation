@@ -119,6 +119,9 @@ func (ba *BAStar) mainLoop() {
 		round := ba.blockchain.GetBlockHeight()
 
 		proposedBlock := ba.proposeBlock()
+		if proposedBlock != nil {
+			ba.statLogger.ElectedAsLeader()
+		}
 
 		localProposal := ba.submitProposal(proposedBlock)
 
