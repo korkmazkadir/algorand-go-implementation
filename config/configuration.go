@@ -13,8 +13,8 @@ type ProtocolParams struct {
 	ThresholdProposer int
 	TSmallStep        int
 	TBigStep          float32
-	TBigFinal         int
-	TSmallFinal       float32
+	TSmallFinal       int
+	TBigFinal         float32
 
 	LamdaPriority int
 	LamdaBlock    int

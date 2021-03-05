@@ -542,7 +542,7 @@ func (ba *BAStar) binaryBA(round int, selectionVector SelectionVector) *Selectio
 			//}
 
 			if step == 1 {
-				ba.committeeVote(round, StepFinal, ba.params.TBigFinal, r)
+				ba.committeeVote(round, StepFinal, ba.params.TSmallFinal, r)
 			}
 
 			return &r
