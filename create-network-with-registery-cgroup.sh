@@ -80,8 +80,10 @@ sudo tc filter add dev $nic parent 1: handle 1: cgroup
 # tc -s -d class show dev lo
 
 for (( i=1; i<=$number_of_nodes; i++ ))
-do  
-   ./algorand-go-implementation -registery="${address_of_registery}:1234"  >> addressbook.txt 2> output/"$i.log" &
+do
+
+   node_id=${HOSTNAME}_${i}
+   ./algorand-go-implementation -registery="${address_of_registery}:1234" -node_id="${node_id}"  >> addressbook.txt 2> output/"$i.log" &
    algorand_pid=$!
 
    if [ "$limit_bandwidth" = true ] ; then

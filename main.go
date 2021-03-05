@@ -25,6 +25,7 @@ func main() {
 
 	peerAddressesFlag := flag.String("peers", "", "semicolon seperated list peer addresses")
 	registeryAddressFlag := flag.String("registery", "", "address of the registery service (127.0.0.6:9091)")
+	nodeID := flag.String("node_id", "", "id of the node, any string without empty character")
 	flag.Parse()
 
 	stat, _ := os.Stdin.Stat()
@@ -43,7 +44,10 @@ func main() {
 	agreementLogger, memoryPoolLogger, blockchainLogger, nodeLogger := initLoggers(appConfig)
 
 	//inits blockchain and memory pool
-	blockPayloadSize := appConfig.Blockchain.BlockPayloadSize
+	blockPayloadSize := appConfig.BAStar.MacroBlockSize / appConfig.BAStar.ConcurrencyConstant
+
+	log.Printf("Microblock paylaod size is %d bytes\n", blockPayloadSize)
+
 	stopOnRound := appConfig.Blockchain.StopOnRound
 	memoryPool := blockchain.NewMemoryPool(blockPayloadSize, memoryPoolLogger)
 	blockchain := blockchain.NewBlockchain(blockchainLogger)
@@ -53,11 +57,12 @@ func main() {
 		fmt.Printf("could not generate key %s", err)
 	}
 
-	app := agreement.NewBAStar(appConfig.BAStar, appConfig.Validation, pk, sk, memoryPool, blockchain, agreementLogger, stopOnRound)
+	app := agreement.NewBAStar(appConfig.BAStar, appConfig.Validation, pk, sk, memoryPool, blockchain, agreementLogger, stopOnRound, *nodeID)
 
 	gossipNodeBufferSize := appConfig.Network.GossipNodeMessageBufferSize
 	fanOutSize := appConfig.Network.FanOut
 	bigMessageMutex := appConfig.Network.BigMessageMutex
+
 	gossipNode := node.NewGossipNode(app, gossipNodeBufferSize, fanOutSize, bigMessageMutex, nodeLogger)
 
 	hostname := getHostName()

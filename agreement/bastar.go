@@ -45,10 +45,12 @@ type BAStar struct {
 	statLogger *StatLogger
 
 	messageCountLogger
+
+	nodeID string
 }
 
 // NewBAStar creates an instance of agrreement protocol
-func NewBAStar(params config.ProtocolParams, validationParams config.ValidationParameters, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger, stopOnRound int) *BAStar {
+func NewBAStar(params config.ProtocolParams, validationParams config.ValidationParameters, publicKey []byte, privateKey []byte, memoryPool blockchain.MemoryPool, blockchain blockchain.Blockchain, logger *log.Logger, stopOnRound int, nodeID string) *BAStar {
 	ba := new(BAStar)
 	ba.networkReadySig = make(chan struct{}, 1)
 
@@ -68,7 +70,8 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 	ba.wg = &sync.WaitGroup{}
 
 	ba.log = logger
-	ba.statLogger = NewStatLogger()
+	ba.nodeID = nodeID
+	ba.statLogger = NewStatLogger(nodeID, params.MacroBlockSize, params.ConcurrencyConstant)
 
 	ba.stopOnRound = stopOnRound
 

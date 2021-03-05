@@ -25,18 +25,24 @@ type statData struct {
 
 // StatLogger defines a custom logger to log the important events
 type StatLogger struct {
-	data      statData
-	delimeter string
-	log       *log.Logger
+	data                statData
+	delimeter           string
+	log                 *log.Logger
+	macroBlockSize      int
+	concurrencyConstant int
 }
 
 // NewStatLogger creates a new StatLogger
-func NewStatLogger() *StatLogger {
+func NewStatLogger(nodeID string, macroBlockSize int, concurrencyConstant int) *StatLogger {
 	flags := log.Ldate | log.Ltime | log.Lmsgprefix
 	statLogger := StatLogger{}
 	statLogger.data.round = -1
-	statLogger.log = log.New(os.Stderr, "[stats]", flags)
+	statLogger.log = log.New(os.Stderr, fmt.Sprintf("[stats]\t%s\t%d\t%d", nodeID, macroBlockSize, concurrencyConstant), flags)
 	statLogger.delimeter = "\t"
+
+	statLogger.macroBlockSize = macroBlockSize
+	statLogger.concurrencyConstant = concurrencyConstant
+
 	return &statLogger
 }
 

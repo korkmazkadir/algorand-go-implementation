@@ -21,12 +21,15 @@ type ProtocolParams struct {
 	LamdaStep     int
 	LamdaStepVar  int
 
+	// macro block size in bytes, micro block size = MacroBlockSize / ConcurrencyConstant
+	MacroBlockSize int
+
 	//ConcurrencyConstant is the number of blocks will be appended to blockchain
 	ConcurrencyConstant int
 }
 
 type BlockchainPrameters struct {
-	BlockPayloadSize int
+	//BlockPayloadSize int
 	//if it is given blockchain stops on the given round
 	//0 means do not stop at all!
 	StopOnRound int
