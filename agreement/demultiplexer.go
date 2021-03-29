@@ -10,7 +10,7 @@ import (
 )
 
 const blockQueueSize = 100
-const voteQueueSize = 1000
+const voteQueueSize = 10000
 
 type waitFunction func()
 
@@ -240,7 +240,7 @@ func (d *demux) enqueueVote(iv incommingVote, messageHash string) (waitFunction,
 	case d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv:
 		return nil, true
 	default:
-		log.Println("WARNING: Could not enqueue the vote\n")
+		log.Println("WARNING: Could not enqueue the vote")
 		waitFunc := func() {
 			d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv
 			log.Printf("Late vote enqueue. Round %d \n", iv.vote.Round)
@@ -277,7 +277,7 @@ func (d *demux) enqueueProposal(ip incommingProposal, messageHash string) (waitF
 	case d.proposalChanMap[ip.proposal.Index] <- ip:
 		return nil, true
 	default:
-		log.Println("WARNING: Could not enqueue the proposal %d \n", ip.proposal.Index)
+		log.Printf("WARNING: Could not enqueue the proposal %d \n", ip.proposal.Index)
 		waitFunc := func() {
 			d.proposalChanMap[ip.proposal.Index] <- ip
 			log.Printf("Late proposal enqueue. Round: %d Block Hash: %s\n", ip.proposal.Index, ByteToBase64String(ip.proposal.BlockHash))
