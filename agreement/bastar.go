@@ -71,7 +71,7 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 
 	ba.log = logger
 	ba.nodeID = nodeID
-	ba.statLogger = NewStatLogger(nodeID, params.MacroBlockSize, params.ConcurrencyConstant)
+	ba.statLogger = NewStatLogger(nodeID, params.MacroBlockSize, params.ConcurrencyConstant, params.ThresholdProposer)
 
 	ba.stopOnRound = stopOnRound
 

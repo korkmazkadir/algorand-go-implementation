@@ -32,10 +32,11 @@ type StatLogger struct {
 	log                 *log.Logger
 	macroBlockSize      int
 	concurrencyConstant int
+	tProposer           int
 }
 
 // NewStatLogger creates a new StatLogger
-func NewStatLogger(nodeID string, macroBlockSize int, concurrencyConstant int) *StatLogger {
+func NewStatLogger(nodeID string, macroBlockSize int, concurrencyConstant int, tPorposer int) *StatLogger {
 	flags := log.Ldate | log.Ltime | log.Lmsgprefix
 	statLogger := StatLogger{}
 	statLogger.data.round = -1
@@ -44,6 +45,7 @@ func NewStatLogger(nodeID string, macroBlockSize int, concurrencyConstant int) *
 
 	statLogger.macroBlockSize = macroBlockSize
 	statLogger.concurrencyConstant = concurrencyConstant
+	statLogger.tProposer = tPorposer
 
 	return &statLogger
 }
@@ -135,6 +137,9 @@ func (sl *StatLogger) printLine() {
 
 	// appends elected leader
 	line = fmt.Sprintf("%s%s%t", line, delimeter, sl.data.electedAsLeader)
+
+	// appends threshold proposer
+	line = fmt.Sprintf("%s%s%d", line, delimeter, sl.tProposer)
 
 	sl.log.Println(line)
 }
