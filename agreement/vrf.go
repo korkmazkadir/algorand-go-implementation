@@ -1,7 +1,6 @@
 package agreement
 
 import (
-	"bytes"
 	"crypto/ed25519"
 )
 
@@ -15,13 +14,11 @@ func (v vrf) ProduceProof(input []byte) ([]byte, []byte) {
 	return hash, proof
 }
 
-func (v vrf) Verify(publicKey []byte, input []byte, hash []byte, proof []byte) bool {
+func (v vrf) Verify(publicKey []byte, input []byte, proof []byte) bool {
 
 	if ed25519.Verify(publicKey, digest(input), proof) == false {
 		return false
 	}
 
-	calculatedHash := digest(proof)
-
-	return bytes.Equal(hash, calculatedHash)
+	return true
 }

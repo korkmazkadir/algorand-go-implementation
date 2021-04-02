@@ -29,15 +29,16 @@ func (s *sortition) Select(seed string, threshold int, role string, userMoney ui
 	return vrfHash, proof, numberOfTimesSelected
 }
 
-func (s *sortition) Verify(publicKey []byte, hash []byte, proof []byte, seed string, threshold int, role string, userMoney uint64, totalMoney uint64) uint64 {
+func (s *sortition) Verify(publicKey []byte, proof []byte, seed string, threshold int, role string, userMoney uint64, totalMoney uint64) uint64 {
 
 	input := seed + role
-	if s.vrf.Verify(publicKey, []byte(input), hash, proof) == false {
+	if s.vrf.Verify(publicKey, []byte(input), proof) == false {
 		//log.Println("could not verify vrf")
 		return 0
 	}
 
-	ratio := calculateRatio(hash)
+	calculatedHash := digest(proof)
+	ratio := calculateRatio(calculatedHash)
 	//fmt.Printf("[verify] ratio: %f\n", ratio)
 	return countSelected(threshold, userMoney, totalMoney, ratio)
 }

@@ -19,7 +19,6 @@ const (
 // Vote defines agreement vote structure
 type Vote struct {
 	Issuer        []byte
-	VrfHash       []byte
 	VrfProof      []byte
 	VoteCount     uint64
 	Round         int
@@ -31,8 +30,8 @@ type Vote struct {
 }
 
 func (v Vote) hashString() string {
-	//SenderPK|VrfHash|VrfProof|VoteCount|Round|Step|LastBlockHash|SelectedBlock
-	return fmt.Sprintf("%x|%x|%x|%d|%d|%s|%x|%x", v.Issuer, v.VrfHash, v.VrfProof, v.VoteCount, v.Round, v.Step, v.LastBlockHash, v.SelectionVector.Hash())
+	//SenderPK|VrfProof|VoteCount|Round|Step|LastBlockHash|SelectedBlock
+	return fmt.Sprintf("%x|%x|%d|%d|%s|%x|%x", v.Issuer, v.VrfProof, v.VoteCount, v.Round, v.Step, v.LastBlockHash, v.SelectionVector.Hash())
 }
 
 // Hash calculatest he hash of the Vote
@@ -58,8 +57,7 @@ type Proposal struct {
 }
 
 func (p *Proposal) hashString() string {
-	//SenderPK|VrfHash|VrfProof|VoteCount|Round|Step|LastBlockHash|SelectedBlock
-	return fmt.Sprintf("%x|%d|%x|%x|%x|%x|%x", p.Issuer, p.Index, p.PrevHash, p.SeedProof, p.VrfProof, p.BlockHash)
+	return fmt.Sprintf("%x|%d|%x|%x|%x|%x", p.Issuer, p.Index, p.PrevHash, p.SeedProof, p.VrfProof, p.BlockHash)
 }
 
 // Hash calculates SHA 256 digest of the proposal

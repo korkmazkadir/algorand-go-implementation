@@ -423,7 +423,7 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, selec
 	userMoney := ba.params.UserMoney
 	totalMoney := ba.params.TotalMoney
 
-	hash, proof, numberOfTimesSelected := ba.sortition.Select(string(seed), stepThreshold, role, userMoney, totalMoney)
+	_, proof, numberOfTimesSelected := ba.sortition.Select(string(seed), stepThreshold, role, userMoney, totalMoney)
 
 	if numberOfTimesSelected == 0 {
 		ba.localVote = nil
@@ -432,7 +432,6 @@ func (ba *BAStar) committeeVote(round int, step string, stepThreshold int, selec
 
 	vote := Vote{
 		Issuer:          ba.publickKey,
-		VrfHash:         hash,
 		VrfProof:        proof,
 		VoteCount:       numberOfTimesSelected,
 		Round:           round,
@@ -473,7 +472,7 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			vote := incommingVote.vote
 			forwardCallback := incommingVote.forward
 
-			numVotes, selectionVector, _ := ba.validateVote(vote, step, stepThreshold)
+			numVotes, selectionVector := ba.validateVote(vote, step, stepThreshold)
 
 			if numVotes == 0 {
 				continue
@@ -679,11 +678,7 @@ func (ba *BAStar) validateProposal(proposal *Proposal) bool {
 	userMoney := ba.params.UserMoney
 	totalMoney := ba.params.TotalMoney
 
-	//Locally calculates the vrf hash
-	//Should do it for blocks also
-	vrfHash := digest(proposal.VrfProof)
-
-	result := ba.sortition.Verify(proposal.Issuer, vrfHash, proposal.VrfProof, seed, threshold, role, userMoney, totalMoney)
+	result := ba.sortition.Verify(proposal.Issuer, proposal.VrfProof, seed, threshold, role, userMoney, totalMoney)
 
 	if result == 0 {
 		ba.log.Println("WARNING: Proposal VRF block is not valid")
@@ -704,7 +699,6 @@ func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 	}
 
 	if ba.validationParams.ValidateBlock == false {
-		//ba.log.Println("WARNING: Did not validate signature and VRF of the block because validation is disabled.")
 		return true
 	}
 
@@ -719,7 +713,7 @@ func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 	userMoney := ba.params.UserMoney
 	totalMoney := ba.params.TotalMoney
 
-	result := ba.sortition.Verify(block.Issuer, block.VrfHash, block.VrfProof, seed, threshold, role, userMoney, totalMoney)
+	result := ba.sortition.Verify(block.Issuer, block.VrfProof, seed, threshold, role, userMoney, totalMoney)
 
 	if result == 0 {
 		ba.log.Println("WARNING: Block VRF block is not valid")
@@ -729,7 +723,7 @@ func (ba *BAStar) validateBlock(block *blockchain.Block) bool {
 	return true
 }
 
-func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes uint64, selectionVector SelectionVector, sortitionHash []byte) {
+func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes uint64, selectionVector SelectionVector) {
 
 	lastBlock := ba.blockchain.GetLastBlock()
 	lastBlockHash := ba.blockchain.GetLastBlockHash()
@@ -739,12 +733,12 @@ func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes 
 	}
 
 	if ba.validationParams.ValidateVote == false {
-		//ba.log.Println("WARNING: Did not validate signature and VRF of the vote because validation is disabled.")
-		return vote.VoteCount, vote.SelectionVector, vote.VrfHash
+		return vote.VoteCount, vote.SelectionVector
 	}
 
 	if isVoteSignatureValid(&vote) == false {
 		ba.log.Println("WARNING: Vote signature is not valid")
+		return
 	}
 
 	round := ba.blockchain.GetBlockHeight()
@@ -753,12 +747,12 @@ func (ba *BAStar) validateVote(vote Vote, step string, threshold int) (numVotes 
 	userMoney := ba.params.UserMoney
 	totalMoney := ba.params.TotalMoney
 
-	selectionCount := ba.sortition.Verify(vote.Issuer, vote.VrfHash, vote.VrfProof, seed, threshold, role, userMoney, totalMoney)
+	selectionCount := ba.sortition.Verify(vote.Issuer, vote.VrfProof, seed, threshold, role, userMoney, totalMoney)
 
 	if selectionCount != vote.VoteCount {
 		ba.log.Printf("ERROR: vote count is not correct. Round: %d Step: %s \n", vote.Round, vote.Step)
 		return
 	}
 
-	return vote.VoteCount, vote.SelectionVector, vote.VrfHash
+	return vote.VoteCount, vote.SelectionVector
 }
