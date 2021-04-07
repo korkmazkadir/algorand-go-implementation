@@ -26,6 +26,8 @@ type ProtocolParams struct {
 
 	//ConcurrencyConstant is the number of blocks will be appended to blockchain
 	ConcurrencyConstant int
+
+	ID int64
 }
 
 type BlockchainPrameters struct {
