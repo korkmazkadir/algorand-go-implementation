@@ -4,6 +4,8 @@ github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGw
 github.com/jung-kurt/gofpdf v1.0.3-0.20190309125859-24315acbbda5/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
 github.com/korkmazkadir/coordinator v0.0.0-20201123151243-7796dde68aad h1:lovXLJll+haDP0EiKm7SMcOVzv+SEAJ6eo//P6ezISY=
 github.com/korkmazkadir/coordinator v0.0.0-20201123151243-7796dde68aad/go.mod h1:RseWfzJuWVO8WmEWwsDv33oDBdDuuC9WNwGhADMQJuw=
+github.com/korkmazkadir/simple-key-value-store v0.0.0-20210405074954-65ef86f8d7fe h1:t/92tyjApqNo3w2NEI1cSrgujerXJ/hHLCSAG+OX8Ps=
+github.com/korkmazkadir/simple-key-value-store v0.0.0-20210405074954-65ef86f8d7fe/go.mod h1:tXBlV+p+7+SS+lXddsadd7VTgaWIbd7qDA10J9Wmzvk=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20180807140117-3d87b88a115f/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190125153040-c74c464bbbf2 h1:y102fOLFqhV41b+4GPiJoa0k/x+pJcEi2/HB1Y5T6fU=
