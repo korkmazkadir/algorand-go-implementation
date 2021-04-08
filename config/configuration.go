@@ -28,6 +28,9 @@ type ProtocolParams struct {
 	ConcurrencyConstant int
 
 	ID int64
+
+	// this is in seconds
+	ThousandVotesValidationTime float32
 }
 
 type BlockchainPrameters struct {

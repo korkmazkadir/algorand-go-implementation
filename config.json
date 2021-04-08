@@ -13,7 +13,8 @@
 		"LamdaStepVar": 5,
 		"MacroBlockSize": 8000000,
 		"ConcurrencyConstant": 1,
-		"ID": 123456
+		"ID": 123456,
+		"ThousandVotesValidationTime": 0.0
 	},
 	"Blockchain": {
 		"StopOnRound": 10

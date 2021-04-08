@@ -495,6 +495,8 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			if float64(counts[string(selectionVector.Hash())]) > math.Ceil(float64(voteThreshold)*float64(stepThreshold)) {
 				ba.log.Printf("A block has reached the target vote count: %s\n", ByteToBase64String(selectionVector.Hash()))
 				ba.printVoteCount(counts)
+				// adds validation sleep
+				ba.validationSleep(len(voters))
 				return selectionVector, false
 			}
 
@@ -502,10 +504,27 @@ func (ba *BAStar) countVotes(round int, step string, voteThreshold float32, step
 			ba.log.Println("Timer expired for count votes.")
 			ba.printVoteCount(counts)
 			//WARNING it was returning nil!!!!!!
+
+			// adds validation sleep
+			ba.validationSleep(len(voters))
 			return selectionVector, true
 		}
 	}
 
+}
+
+func (ba *BAStar) validationSleep(numberOfValidatedVotes int) {
+
+	if ba.params.ThousandVotesValidationTime == 0 {
+		// no need to sleep...
+		return
+	}
+
+	// * 1000 to convert from seconds to milliseconds
+	sleepTime := (float32(numberOfValidatedVotes) / 1000) * ba.params.ThousandVotesValidationTime * 1000
+	sleepDuration := time.Duration(sleepTime) * time.Millisecond
+	ba.log.Printf("Validated %d votes, It will sleep %s\n", numberOfValidatedVotes, sleepDuration)
+	time.Sleep(sleepDuration)
 }
 
 func (ba *BAStar) printVoteCount(voteCountMap map[string]uint64) {
