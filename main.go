@@ -17,9 +17,16 @@ import (
 	"github.com/korkmazkadir/algorand-go-implementation/config"
 	"github.com/korkmazkadir/coordinator/registery"
 	"github.com/korkmazkadir/go-rpc-node/node"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 func main() {
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	var peerAddresses []string
 
