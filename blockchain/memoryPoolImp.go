@@ -41,7 +41,12 @@ func (mp *memoryPoolImp) CreateBlock(previousBlockHash []byte, blockIndex int) *
 	block.Index = blockIndex
 
 	rand.Seed(time.Now().UnixNano())
-	payload := make([]byte, mp.blockPayloadSize)
+	// to decrease the memory consumption, in memory we will keep only 256 byte
+	// random data. We will append the extra data before sending message over the network
+	// I hope this will decrease memory consumption of 100 nodes on a machine
+	// payload := make([]byte, mp.blockPayloadSize)
+	payload := make([]byte, 256)
+
 	size, err := rand.Read(payload)
 	if err != nil || size != mp.blockPayloadSize {
 		panic(fmt.Errorf("could not create random payload for block. %s size %d", err, size))
@@ -63,4 +68,9 @@ func (mp *memoryPoolImp) CreateEmptyBlock(previousBlock *MacroBlock, blockIndex 
 	emptyBlock.SeedHash = previousBlock.SeedHash()
 
 	return emptyBlock
+}
+
+func (mp *memoryPoolImp) GetPayloadSize() int {
+	// 256 bytes is already appended to the paylaod of a created block
+	return mp.blockPayloadSize - 256
 }

@@ -53,9 +53,9 @@ type Transaction struct {
 // MemoryPool defines the interface of memory pool
 type MemoryPool interface {
 	AddTransaction(transaction Transaction)
-	//RemoveTransactions(block Block)
 	CreateBlock(previousBlockHash []byte, blockIndex int) *Block
 	CreateEmptyBlock(previousBlock *MacroBlock, blockIndex int) *Block
+	GetPayloadSize() int
 }
 
 // Blockchain defines the interface of blockchain

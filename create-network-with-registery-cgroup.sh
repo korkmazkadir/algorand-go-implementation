@@ -79,6 +79,9 @@ sudo tc filter add dev $nic parent 1: handle 1: cgroup
 
 # tc -s -d class show dev lo
 
+# removes inventory files
+rm -rf /tmp/message-inventory
+
 for (( i=1; i<=$number_of_nodes; i++ ))
 do
 

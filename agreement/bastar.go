@@ -77,6 +77,8 @@ func NewBAStar(params config.ProtocolParams, validationParams config.ValidationP
 
 	ba.messageCountLogger.round = 1
 
+	ba.blockRandomPayloadSize = memoryPool.GetPayloadSize()
+
 	return ba
 }
 
