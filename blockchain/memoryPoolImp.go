@@ -47,9 +47,9 @@ func (mp *memoryPoolImp) CreateBlock(previousBlockHash []byte, blockIndex int) *
 	// payload := make([]byte, mp.blockPayloadSize)
 	payload := make([]byte, 256)
 
-	size, err := rand.Read(payload)
-	if err != nil || size != mp.blockPayloadSize {
-		panic(fmt.Errorf("could not create random payload for block. %s size %d", err, size))
+	_, err := rand.Read(payload)
+	if err != nil {
+		panic(fmt.Errorf("could not create random payload for block %s ", err))
 	}
 
 	block.Transactions = payload
