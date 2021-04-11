@@ -6,6 +6,8 @@ import (
 	"log"
 	"math"
 	"os"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -242,7 +244,24 @@ func (ba *BAStar) mainLoop() {
 		payloadSize := ba.blockchain.GetLastBlock().PayloadSize()
 		ba.statLogger.SetAppendedPayloadSize(payloadSize)
 
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+
+		allocBefore := bToMb(m.Alloc)
+
+		start := time.Now()
+		debug.FreeOSMemory()
+
+		runtime.ReadMemStats(&m)
+		allocAfter := bToMb(m.Alloc)
+
+		ba.log.Printf("OS memory freed in %s Alloc before: %v After: %v\n", time.Since(start), allocBefore, allocAfter)
+
 	}
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }
 
 func (ba *BAStar) waitForMissingBlock(round int, blockHashes [][]byte, enableTimer bool) ([]blockchain.Block, bool) {
