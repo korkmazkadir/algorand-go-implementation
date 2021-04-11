@@ -9,8 +9,8 @@ import (
 	"github.com/korkmazkadir/go-rpc-node/node"
 )
 
-const blockQueueSize = 100
-const voteQueueSize = 10000
+const blockQueueSize = 1
+const voteQueueSize = 100
 
 type waitFunction func()
 
@@ -199,10 +199,10 @@ func (d *demux) enqueueBlock(ib incommingBlock, messageHash string) (waitFunctio
 	case d.blockChanMap[ib.block.Index] <- ib:
 		return nil, true
 	default:
-		log.Printf("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
+		//log.Printf("WARNING: Could not enqueue the block %s \n", ByteToBase64String(ib.block.Hash()))
 		waitFunc := func() {
 			d.blockChanMap[ib.block.Index] <- ib
-			log.Printf("Late block enqueue. Round: %d Hash: %s\n", ib.block.Index, ByteToBase64String(ib.block.Hash()))
+			//log.Printf("Late block enqueue. Round: %d Hash: %s\n", ib.block.Index, ByteToBase64String(ib.block.Hash()))
 		}
 
 		return waitFunc, false
@@ -240,10 +240,10 @@ func (d *demux) enqueueVote(iv incommingVote, messageHash string) (waitFunction,
 	case d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv:
 		return nil, true
 	default:
-		log.Println("WARNING: Could not enqueue the vote")
+		//log.Println("WARNING: Could not enqueue the vote")
 		waitFunc := func() {
 			d.voteChanMap[iv.vote.Round][iv.vote.Step] <- iv
-			log.Printf("Late vote enqueue. Round %d \n", iv.vote.Round)
+			//log.Printf("Late vote enqueue. Round %d \n", iv.vote.Round)
 		}
 
 		return waitFunc, false
@@ -277,10 +277,10 @@ func (d *demux) enqueueProposal(ip incommingProposal, messageHash string) (waitF
 	case d.proposalChanMap[ip.proposal.Index] <- ip:
 		return nil, true
 	default:
-		log.Printf("WARNING: Could not enqueue the proposal %d \n", ip.proposal.Index)
+		//log.Printf("WARNING: Could not enqueue the proposal %d \n", ip.proposal.Index)
 		waitFunc := func() {
 			d.proposalChanMap[ip.proposal.Index] <- ip
-			log.Printf("Late proposal enqueue. Round: %d Block Hash: %s\n", ip.proposal.Index, ByteToBase64String(ip.proposal.BlockHash))
+			//log.Printf("Late proposal enqueue. Round: %d Block Hash: %s\n", ip.proposal.Index, ByteToBase64String(ip.proposal.BlockHash))
 		}
 
 		return waitFunc, false
